@@ -1,0 +1,17 @@
+{
+  "name": "frappe-workflow",
+  "displayName": "Frappe Workflow",
+  "version": "0.1.0",
+  "description": "Guided end-to-end workflow for planning, implementing, reviewing, testing, committing, deploying, and closing Frappe and ERPNext tasks.",
+  "author": {
+    "name": "Mustafa Hasanain"
+  },
+  "license": "MIT",
+  "keywords": [
+    "frappe",
+    "erpnext",
+    "workflow",
+    "claude-code",
+    "development"
+  ]
+}

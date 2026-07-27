@@ -1,0 +1,13 @@
+{
+  "demo_server": {
+    "host": "a1-demo",
+    "port": 22,
+    "ssh_user": "e2next_user",
+    "identity_file": null,
+    "bench_path": "/home/e2next_user/frappe-bench",
+    "app_name": "general_trading",
+    "target_site": "car.wash",
+    "remote": "upstream",
+    "branch": "feature/example"
+  }
+}

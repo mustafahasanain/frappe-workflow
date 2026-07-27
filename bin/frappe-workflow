@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Deterministic CLI wrapper for the frappe-workflow plugin.
+# Resolves the plugin root from this file's own location, so it works from
+# any current working directory (including paths containing spaces).
+set -euo pipefail
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+PLUGIN_ROOT="$(cd -P "$(dirname "$SOURCE")/.." >/dev/null 2>&1 && pwd)"
+
+exec python3 "$PLUGIN_ROOT/scripts/cli.py" "$@"

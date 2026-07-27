@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "task_id": null,
+  "task_title": null,
+  "task_type": null,
+  "bench_path": null,
+  "app_name": null,
+  "app_path": null,
+  "target_site": null,
+  "branch": null,
+  "base_commit": null,
+  "current_stage": "planning",
+  "task_plan_status": "not_created",
+  "implementation_status": {
+    "status": "pending",
+    "total_steps": 0,
+    "completed_steps": 0,
+    "blocked_steps": 0
+  },
+  "codex_review": {
+    "status": "pending",
+    "round": 0,
+    "prompt_path": null,
+    "result_path": null,
+    "implementation_fingerprint": null,
+    "approved_at": null
+  },
+  "commit": {
+    "status": "not_created",
+    "hash": null,
+    "subject": null
+  },
+  "deployment": {
+    "required": null,
+    "status": "pending",
+    "skip_reason": null,
+    "server_commit": null,
+    "deployed_at": null
+  },
+  "testing_task": {
+    "status": "pending",
+    "path": null,
+    "generated_at": null
+  },
+  "blockers": [],
+  "transition_history": [],
+  "created_at": null,
+  "updated_at": null
+}

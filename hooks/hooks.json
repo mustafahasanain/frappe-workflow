@@ -1,0 +1,16 @@
+{
+  "description": "frappe-workflow safety hooks: block destructive Git, filesystem, and bench commands the workflow never needs.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/guard_dangerous_commands.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
