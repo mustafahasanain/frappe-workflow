@@ -56,12 +56,23 @@ they exist once.
 | `core/deployment.py` | Config validation, SSH argv construction, preflight evaluation, command matrix |
 | `core/security.py` | Secret patterns, redaction, forbidden filenames |
 | `core/clipboard.py` | WSL-vs-native detection and the ordered clipboard methods; `env`, `which`, and `run` are the injectable seams, so no test touches a real clipboard |
+| `core/rtl_display.py` | The Unicode bidirectional algorithm (UAX #9), used only to render logical text in visual order for a terminal that has none. Pure function of a string: no clipboard, no file, no subprocess |
 | `core/exit_codes.py` | The stable exit-code constants |
 
 Constraints for anything added here: standard library only, `pathlib` for
 paths, subprocess **argument arrays** (never `shell=True`), atomic writes
 for state, UTF-8 everywhere, no side effects on import, and no function
 that opens a network or SSH connection during tests.
+
+The standard-library rule is why `core/rtl_display.py` implements UAX #9
+instead of importing `python-bidi`: the plugin is distributed as plain
+files and run by the system `python3`, with no packaging step, no
+virtualenv, and no install hook, so any third-party import would be a
+`ModuleNotFoundError` on a machine that happens not to have it — and
+vendoring that particular package would put LGPL code in an MIT plugin.
+Its output is display-only and must never reach a clipboard, a file, or the
+workflow state; the logical text remains the authoritative one everywhere
+else.
 
 ## Tests and Fixtures
 

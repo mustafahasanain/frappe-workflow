@@ -3,9 +3,10 @@
 ## Output Shape
 
 Generate only two labeled parts, with Arabic content. Copy them to the
-host clipboard first, then print them directly in the terminal, so the user
-can paste them into the testing team's task-management system. Nothing is
-written to disk:
+host clipboard first — in their original logical Unicode order, which is
+what the user pastes into the testing team's task-management system — then
+show the terminal preview the copy command prints. Nothing is written to
+disk:
 
 ```text
 العنوان:
@@ -63,7 +64,7 @@ Pipe the finished text into the helper on stdin, with a quoted here-doc so
 nothing in the content is expanded or reinterpreted:
 
 ```bash
-bin/frappe-workflow clipboard copy <<'AR'
+bin/frappe-workflow clipboard copy --preview <<'AR'
 العنوان:
 <Arabic title>
 
@@ -77,10 +78,41 @@ the **Windows host clipboard** through `powershell.exe`, on a native Linux
 desktop to the **session clipboard** through `wl-copy`, `xclip`, or `xsel`.
 Nothing has to be configured, and the text never touches disk.
 
+What reaches the clipboard is the text exactly as written above — logical
+Unicode order, not reordered, not reshaped, not reversed. That is also the
+only form to count characters of or validate against.
+
 ### 2. On success (exit `0`)
 
-Print the same two blocks in the terminal and say that they are already on
-the clipboard. Then record the state and close the workflow.
+`--preview` makes the command print the hand-off block itself:
+
+```text
+Testing task copied to clipboard.
+
+العنوان:
+<the title, reordered for this terminal>
+
+الوصف:
+<the description, reordered for this terminal>
+
+Paste from the clipboard for the original Unicode text.
+```
+
+Repeat that output verbatim in your reply, then the deployment-skipped
+warning if the stage calls for it, then record the state and close the
+workflow.
+
+The preview exists because this terminal draws text strictly left to right
+and has no Unicode bidirectional support, so logical Arabic reads backwards
+in it. The preview is display-only: **never** print the logical Arabic text
+yourself, never put the preview on the clipboard, in a file, or in the
+workflow state, and never produce a reordered form by hand — the command is
+the only source of it.
+
+If the command reports instead that the preview could not be formatted, the
+hand-off is still complete, because the clipboard already holds the text.
+Pass that English warning on, do not print the logical Arabic as a
+substitute, and continue normally.
 
 ### 3. On a missing clipboard (exit `8`)
 
@@ -89,10 +121,10 @@ unavailable; show that, and ask the user to install `wl-clipboard`, `xclip`,
 or `xsel` — or to run from a session that has a clipboard — and then to ask
 for the testing task again. **Never** install a package yourself.
 
-Do **not** print the Arabic text in this case: a terminal shows it visually
-reordered, so copying it by hand from there produces a corrupted task. And
-do not record `testing_task`, do not transition to `completed`, and do not
-"rescue" the text into a file.
+Do **not** print the Arabic text in this case — neither the logical form,
+which this terminal shows backwards, nor a preview, which is not safe to
+paste. And do not record `testing_task`, do not transition to `completed`,
+and do not "rescue" the text into a file.
 
 ### Never a File
 
@@ -103,9 +135,10 @@ do not record `testing_task`, do not transition to `completed`, and do not
   `testing-task-ar.md` from the days when the file was saved. It is a
   legacy artifact: not read, not updated, not staged, not migrated, and not
   deleted — not even by a confirmed `reset`.
-- If the user loses the text after the workflow reached `completed`, copy
-  and print it again from the same approved behavior and write nothing: no
-  state change, no transition, no file.
+- If the user loses the text after the workflow reached `completed`,
+  regenerate it from the same approved behavior, copy it with
+  `--preview` again, show that preview, and write nothing: no state change,
+  no transition, no file.
 
 ## Closing
 

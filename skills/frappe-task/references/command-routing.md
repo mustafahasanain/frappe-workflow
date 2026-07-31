@@ -149,9 +149,9 @@ deployment skill
 
 Requires stage `deployed` or `deployment_skipped`. Delegate to the
 testing-task skill: Arabic title + description from the approved behavior,
-**copied to the host clipboard** with `CLI clipboard copy` (text on stdin)
-and then **printed in the terminal** in this shape, so the user can paste
-them into their task-management system —
+**copied to the host clipboard** with `CLI clipboard copy --preview` (text
+on stdin) in logical Unicode order, so the user can paste them into their
+task-management system —
 
 ```text
 العنوان:
@@ -161,10 +161,14 @@ them into their task-management system —
 <Arabic description>
 ```
 
-— then `CLI state set testing_task.status generated`,
+— and then **printed in the terminal** as the visual preview that same
+command produces: the identical text reordered for a terminal without
+bidirectional support. Repeat that preview output; never print the logical
+Arabic, and never copy, save, or record the preview. Then
+`CLI state set testing_task.status generated`,
 `CLI state set testing_task.generated_at <UTC timestamp>`, and
 `state transition completed`. When deployment was skipped, show the English
-skip warning separately, after the Arabic text (never inside it).
+skip warning separately, after the preview (never inside the Arabic text).
 
 The copy comes first and gates everything after it. If `clipboard copy`
 exits 8 (no clipboard reachable from this session), stop: show the checked
@@ -173,8 +177,9 @@ transition nothing. Ask the user to install `wl-clipboard`, `xclip`, or
 `xsel` — the plugin never installs packages — and to ask again.
 
 No file is written: there is no `testing-task-ar.md` and no replacement for
-it. If the user asks for the text again once the stage is `completed`, copy
-and print it again and change nothing.
+it. If the user asks for the text again once the stage is `completed`,
+regenerate it, copy it with `--preview` again, show that preview, and
+change nothing.
 
 ## `reset`
 

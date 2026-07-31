@@ -28,6 +28,7 @@ from core import (  # noqa: E402
     git_checks,
     project_files,
     review_bundle,
+    rtl_display,
     security,
     validators,
     workflow_state,
@@ -410,9 +411,58 @@ def cmd_project(args) -> int:
     return exit_codes.INVALID_USAGE
 
 
+# --- Terminal preview of the copied text -----------------------------------
+
+# What the user is told after a successful copy. The clipboard holds the
+# logical text; only these lines and the reordered block between them are
+# terminal output, and the wording says which one to paste.
+PREVIEW_HEADLINE = "Testing task copied to clipboard."
+PREVIEW_FOOTER = "Paste from the clipboard for the original Unicode text."
+PREVIEW_UNAVAILABLE = (
+    "The terminal preview could not be formatted, so it is not shown. The "
+    "clipboard already holds the original text — paste it from there."
+)
+
+
+def _preview_block(text: str) -> str:
+    """Return the terminal-only rendering of *text*, or a warning instead.
+
+    The copy has already succeeded by the time this runs, so no failure here
+    may look like a failed hand-off: a broken rendering degrades to an
+    English warning. The logical text is never printed as a fallback — a
+    terminal without bidi support shows it backwards, and a task copied by
+    hand out of that is corrupted.
+    """
+    try:
+        visual = rtl_display.to_visual(text)
+    except Exception:  # noqa: BLE001 - a preview must never fail a copy
+        return f"{PREVIEW_HEADLINE}\n\n{PREVIEW_UNAVAILABLE}"
+    return f"{PREVIEW_HEADLINE}\n\n{visual}\n\n{PREVIEW_FOOTER}"
+
+
+def _print_preview(block: str) -> None:
+    """Print *block*, falling back to UTF-8 bytes on an ASCII-only stdout."""
+    try:
+        print(block)
+        return
+    except UnicodeEncodeError:
+        pass
+    buffer = getattr(sys.stdout, "buffer", None)
+    if buffer is None:
+        print(f"{PREVIEW_HEADLINE}\n\n{PREVIEW_UNAVAILABLE}")
+        return
+    buffer.write(block.encode("utf-8") + b"\n")
+    buffer.flush()
+
+
 def cmd_clipboard(args) -> int:
     if args.clipboard_command != "copy":
         _err("unknown clipboard command")
+        return exit_codes.INVALID_USAGE
+
+    preview = getattr(args, "preview", False)
+    if preview and args.json:
+        _err("--preview is terminal-only output and cannot be combined with --json")
         return exit_codes.INVALID_USAGE
 
     # Read bytes, not text: the payload is Arabic UTF-8 and must not depend
@@ -431,10 +481,15 @@ def cmd_clipboard(args) -> int:
 
     if args.json:
         _out(result.to_dict(), True)
-    elif result.copied:
-        _out(result.render(), False)
-    else:
+    elif not result.copied:
         _err(result.render())
+    elif preview:
+        # The clipboard already holds the logical text; what follows is a
+        # display rendering of that same text, built from a local copy and
+        # kept nowhere.
+        _print_preview(_preview_block(text.rstrip("\n")))
+    else:
+        _out(result.render(), False)
     return exit_codes.SUCCESS if result.copied else exit_codes.CLIPBOARD_UNAVAILABLE
 
 
@@ -578,11 +633,20 @@ def build_parser() -> argparse.ArgumentParser:
         "clipboard", help="Copy text to the clipboard of the detected environment"
     )
     clipboard_sub = p_clipboard.add_subparsers(dest="clipboard_command", required=True)
-    clipboard_sub.add_parser(
+    p_copy = clipboard_sub.add_parser(
         "copy",
         help=(
             "Copy UTF-8 text read from stdin to the Windows host clipboard "
             "(WSL) or the desktop clipboard (native Linux)"
+        ),
+    )
+    p_copy.add_argument(
+        "--preview",
+        action="store_true",
+        help=(
+            "After a successful copy, print the copied text reordered for a "
+            "terminal that does not implement the Unicode bidirectional "
+            "algorithm. Display only: the clipboard keeps the original text"
         ),
     )
 

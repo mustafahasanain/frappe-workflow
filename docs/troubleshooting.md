@@ -359,21 +359,48 @@ and restart the distribution with `wsl --shutdown` from Windows. A Linux
 clipboard tool inside WSL is deliberately **not** used as a fallback: it
 would fill a clipboard that Windows applications cannot paste from.
 
-Nothing is left half-done by the failure: no Arabic text is printed (a
-terminal renders it visually reordered, which is not safe to copy by hand),
-`testing_task` is not recorded, and the stage does not move to `completed`.
-Fix the clipboard and ask for the testing task again.
+Nothing is left half-done by the failure: no Arabic text is printed (in
+this terminal the logical text reads backwards, and the display preview is
+not safe to paste), `testing_task` is not recorded, and the stage does not
+move to `completed`. Fix the clipboard and ask for the testing task again.
+
+## The preview could not be formatted
+
+```text
+Testing task copied to clipboard.
+
+The terminal preview could not be formatted, so it is not shown. The
+clipboard already holds the original text — paste it from there.
+```
+
+This is not a failed hand-off. The copy is what matters and it succeeded,
+so the workflow completes as usual; only the readable on-screen rendering
+is missing. Paste from the clipboard as always. The logical Arabic is
+deliberately not printed as a substitute, because this terminal would show
+it backwards and a task copied by hand out of that is corrupted.
+
+## The Arabic in the terminal looks different from what I pasted
+
+It is meant to. The Claude Code terminal draws characters strictly left to
+right and implements none of the Unicode bidirectional algorithm, so the
+preview under `Testing task copied to clipboard.` is the task text
+*reordered for display* — that is the only reason it is readable there.
+
+The clipboard holds the original logical text, unmodified. Always paste
+from the clipboard; copying the preview out of the terminal instead gives
+you visually reordered text that any application with proper Arabic support
+will show backwards.
 
 ## Where is the testing task file?
 
 There is none, by design. `testing` copies the Arabic title and description
-to your clipboard and prints them in the terminal; nothing is written to
-`docs/ai-context/`, to `.claude/`, or anywhere else, and the text is not
-kept in the workflow state.
+to your clipboard and shows a display-only preview of them in the terminal;
+nothing is written to `docs/ai-context/`, to `.claude/`, or anywhere else,
+and neither the text nor its preview is kept in the workflow state.
 
 If you lost the clipboard contents or scrolled past the output, ask for the
 testing task again — it is regenerated from the same approved behavior,
-copied and printed once more, with no change to the `completed` state.
+copied and previewed once more, with no change to the `completed` state.
 
 An application that was initialized by an older plugin version may still
 contain `.claude/testing-task-ar.md` or

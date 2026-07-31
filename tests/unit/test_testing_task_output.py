@@ -20,6 +20,8 @@ from pathlib import Path
 import support
 from core import project_files, workflow_state
 
+import cli  # noqa: E402  (scripts/ is on sys.path via support)
+
 PLUGIN_ROOT = support.PLUGIN_ROOT
 STATUS_DOC = PLUGIN_ROOT / "skills/frappe-task/examples/status-output.md"
 HELP_DOC = PLUGIN_ROOT / "skills/frappe-task/examples/help-output.md"
@@ -68,6 +70,15 @@ def searched_documents() -> list[Path]:
 
 def paragraphs(text: str) -> list[str]:
     return re.split(r"\n\s*\n", text)
+
+
+def flat(text: str) -> str:
+    """Lowercase *text* with Markdown emphasis and line wrapping removed.
+
+    These documents are prose: an assertion about what they say must not
+    depend on where a sentence happened to wrap or on a pair of asterisks.
+    """
+    return re.sub(r"\s+", " ", text.replace("*", "").replace("`", "")).lower()
 
 
 class NoTestingTaskFileIsPromisedTests(unittest.TestCase):
@@ -141,9 +152,8 @@ class TestingSkillInstructionsTests(unittest.TestCase):
                 self.assertIn(label, self.rules)
 
     def test_rules_require_the_clipboard_then_terminal_output(self):
-        self.assertRegex(self.rules, r"print(ed)?\s+them\s+directly\s+in\s+the\s+terminal")
         self.assertIn("Clipboard First, Then Terminal", self.rules)
-        self.assertIn("clipboard copy", self.rules)
+        self.assertIn("clipboard copy --preview", self.rules)
         self.assertIn("Never a File", self.rules)
 
     def test_rules_stop_the_workflow_when_the_clipboard_is_unavailable(self):
@@ -204,6 +214,88 @@ class TestingSkillInstructionsTests(unittest.TestCase):
         self.assertIn("exits 8", testing_section)
         self.assertIn("print no Arabic text", testing_section)
         self.assertIn("transition nothing", testing_section)
+
+
+class LogicalClipboardVersusVisualTerminalTests(unittest.TestCase):
+    """The instructions must keep the two representations apart.
+
+    The model is what executes them, so a document that blurs "copied" and
+    "shown" is the same bug as code that copies the reordered text.
+    """
+
+    def setUp(self):
+        self.skill = SKILL_DOC.read_text(encoding="utf-8")
+        self.rules = RULES_DOC.read_text(encoding="utf-8")
+        self.routing = ROUTING_DOC.read_text(encoding="utf-8")
+        self.flat_skill = flat(self.skill)
+        self.flat_rules = flat(self.rules)
+
+    def test_every_instruction_uses_the_preview_flag(self):
+        for name, text in (
+            ("SKILL.md", self.skill),
+            ("rules", self.rules),
+            ("routing", self.routing),
+        ):
+            with self.subTest(document=name):
+                self.assertIn("clipboard copy --preview", text)
+
+    def test_rules_promise_the_clipboard_the_unmodified_logical_text(self):
+        self.assertIn("logical Unicode order", self.rules)
+        self.assertIn("not reordered, not reshaped, not reversed", self.rules)
+
+    def test_rules_quote_the_output_the_command_actually_prints(self):
+        # If the CLI wording changes, the instructions have to follow.
+        self.assertIn(cli.PREVIEW_HEADLINE, self.rules)
+        self.assertIn(cli.PREVIEW_FOOTER, self.rules)
+
+    def test_the_logical_text_is_never_printed_and_the_preview_never_stored(self):
+        for name, text in (
+            ("SKILL.md", self.flat_skill),
+            ("rules", self.flat_rules),
+        ):
+            with self.subTest(document=name):
+                self.assertIn("never print the logical arabic", text)
+                self.assertIn("workflow state", text)
+        self.assertIn(
+            "never put the preview on the clipboard, in a file, or in the "
+            "workflow state",
+            self.flat_rules,
+        )
+
+    def test_the_model_may_not_reorder_the_text_itself(self):
+        prohibited = self.skill.split("## Prohibited")[1].split("\n## ")[0]
+        self.assertIn("Reordering, reshaping, or reversing the text yourself", prohibited)
+        self.assertIn("--preview", prohibited)
+
+    def test_a_failed_preview_still_leaves_a_completed_hand_off(self):
+        stopping = flat(self.skill.split("## Stopping Conditions")[1].split("\n## ")[0])
+        self.assertIn("preview could not be formatted", stopping)
+        self.assertIn("never print the logical arabic", stopping)
+        self.assertIn("preview could not be formatted", self.flat_rules)
+
+    def test_the_completed_retry_copies_and_previews_without_a_state_change(self):
+        repeat = flat(
+            self.skill.split("## Repeating After Completion")[1].split("\n## ")[0]
+        )
+        self.assertIn("copy it to the clipboard", repeat)
+        self.assertIn("preview", repeat)
+        for unchanged in ("no transition", "no state write", "no file"):
+            with self.subTest(unchanged=unchanged):
+                self.assertIn(unchanged, repeat)
+
+    def test_the_deployment_skipped_warning_comes_after_the_preview(self):
+        self.assertIn("after the preview", flat(self.skill) + flat(self.routing))
+
+    def test_user_documentation_says_which_one_to_paste(self):
+        usage = flat((PLUGIN_ROOT / "docs/usage.md").read_text(encoding="utf-8"))
+        troubleshooting = flat(
+            (PLUGIN_ROOT / "docs/troubleshooting.md").read_text(encoding="utf-8")
+        )
+        self.assertIn("paste from the clipboard, not from that preview.", usage)
+        self.assertIn("original logical unicode order", usage)
+        self.assertIn("terminal-only preview", usage)
+        self.assertIn("the preview could not be formatted", troubleshooting)
+        self.assertIn("always paste from the clipboard", troubleshooting)
 
 
 class StatusOutputTests(unittest.TestCase):

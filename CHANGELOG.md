@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Readable Arabic in an LTR-only terminal** — `clipboard copy --preview`
+  copies the testing task unchanged and then prints the *same* text
+  reordered for display, so the Claude Code terminal, which draws
+  characters strictly left to right, shows Arabic the right way round
+  instead of backwards. The clipboard keeps the original logical Unicode
+  order — it is what character counts, validation, and pasting use — and
+  the visual form is terminal output only: never copied, never written to a
+  file, never stored in the workflow state. The reordering is a standard
+  library implementation of the Unicode bidirectional algorithm (UAX #9) in
+  `scripts/core/rtl_display.py`, resolving each line independently, so
+  embedded Latin runs such as `Workflow Test Item`, `Draft`, `Active`, and
+  `Archived` keep their own reading order and numbers, punctuation, and
+  brackets land where a bidi-aware renderer would put them. No third-party
+  package is required: the plugin ships as plain files run by the system
+  `python3`, so a PyPI dependency could not be relied on. A copy that
+  succeeds is never undone by a rendering problem — the command then says
+  the preview is unavailable, keeps the successful copy, exits `0`, and
+  still does not print the logical text, which the terminal would show
+  backwards.
+
 ### Changed
 
 - **Arabic testing task is terminal output, not a file** — `testing` now

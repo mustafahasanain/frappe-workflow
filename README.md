@@ -38,8 +38,9 @@ marketplace.
 - **Deploys only when told** — explicit confirmation, read-only preflight,
   fast-forward-only pull, and only the bench commands the changes justify.
 - **Closes the loop** — a short Arabic testing task written from the
-  approved behavior and printed in the terminal, ready to copy into your
-  task-management system. No file is created for it.
+  approved behavior, copied to your clipboard ready to paste into your
+  task-management system, and previewed readably in the terminal. No file
+  is created for it.
 - **Survives a restart** — the persisted stage is the source of truth, so
   reopening Claude Code continues exactly where you left off.
 
@@ -70,7 +71,7 @@ Both existing applications and greenfield projects:
 /frappe-workflow:frappe-task apply-review                  # feed the verdict back
 /frappe-workflow:frappe-task commit                        # prepare the commit
 /frappe-workflow:frappe-task deploy                        # ask, then deploy or skip
-/frappe-workflow:frappe-task testing                       # print Arabic testing task, close
+/frappe-workflow:frappe-task testing                       # copy Arabic testing task, close
 ```
 
 Run it with no action to continue the active task from its recorded stage.
@@ -168,11 +169,13 @@ The `.gitignore` block is managed idempotently between marker comments; the
 rest of your `.gitignore` is never touched. See
 [references/file-lifecycle.md](references/file-lifecycle.md).
 
-The Arabic testing task is not in that list on purpose: `testing` prints
-the title and description in the terminal for you to copy, and saves
-nothing. An application initialized by an older version may still contain a
-`testing-task-ar.md` — it is left untouched and no longer used by anything,
-including `reset`.
+The Arabic testing task is not in that list on purpose: `testing` puts the
+title and description on your clipboard, shows a display-only preview of
+them in the terminal, and saves nothing. Paste from the clipboard — it
+holds the original text, while the preview is reordered purely so a
+left-to-right terminal can render it. An application initialized by an
+older version may still contain a `testing-task-ar.md` — it is left
+untouched and no longer used by anything, including `reset`.
 
 ## Deployment Behavior
 

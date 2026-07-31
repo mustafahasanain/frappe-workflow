@@ -136,7 +136,8 @@ class HelpDocumentTests(unittest.TestCase):
             r"^  testing {2,}(.+?)\n\n", self.block, re.S | re.M
         ).group(1)
         self.assertRegex(description, r"clipboard")
-        self.assertRegex(description, r"print")
+        # The terminal shows a preview; the clipboard is what gets pasted.
+        self.assertRegex(description, r"preview")
         self.assertRegex(description, r"[Nn]othing is saved to a file")
 
     def test_cross_device_continuation_is_explained(self):

@@ -175,8 +175,8 @@ recovery to a human.
 ## Closing the Task
 
 The testing action generates a short Arabic title and description from the
-approved behavior, prints them in the terminal, and moves the workflow to
-`completed`:
+approved behavior, copies them to your clipboard, previews them in the
+terminal, and moves the workflow to `completed`:
 
 ```text
 العنوان:
@@ -186,16 +186,20 @@ approved behavior, prints them in the terminal, and moves the workflow to
 <Arabic description>
 ```
 
-Copy them into your task-management system — that is the whole purpose of
-the output. **No file is written**: there is no `testing-task-ar.md` and no
-replacement for it, and the generated text is not stored in the workflow
-state either. What the state records is that the task was generated and
+Paste that from the clipboard into your task-management system — the
+clipboard holds it in original logical Unicode order, and that is the whole
+purpose of the action. The block shown in the terminal is a display-only
+rendering of the same text, reordered so that a terminal without
+bidirectional support can show it readably; it is not what you paste.
+**No file is written**: there is no `testing-task-ar.md` and no
+replacement for it, and neither the generated text nor its preview is
+stored in the workflow state. What the state records is that the task was generated and
 when (`testing_task.status`, `testing_task.generated_at`), which `status`
 reports as `Testing task: generated (2026-07-31T13:09:37Z)`.
 
 When deployment was skipped, a separate English warning is shown — after
-the Arabic text, never inside it — telling you to publish the testing task
-only once the changes reach the testing environment.
+the preview, never inside the Arabic text — telling you to publish the
+testing task only once the changes reach the testing environment.
 
 Older plugin versions saved this content to `.claude/testing-task-ar.md`
 and later to `docs/ai-context/testing-task-ar.md`. Such a file is now a

@@ -82,8 +82,8 @@ current task — later phases become their own tasks.
 ## The Arabic Testing Task
 
 `testing` closes the workflow. It writes **no file**: the title and
-description are copied to your clipboard and printed in the Claude Code
-terminal, in this shape, ready to paste into your task-management system:
+description are copied to your clipboard in this shape, ready to paste into
+your task-management system:
 
 ```text
 العنوان:
@@ -93,9 +93,33 @@ terminal, in this shape, ready to paste into your task-management system:
 <Arabic description>
 ```
 
-The clipboard is the actual hand-off — a terminal shows Arabic visually
-reordered, so the printed copy is only there for you to see what was
-produced. Which clipboard is detected on every run, with nothing to
+The clipboard receives that text in its **original logical Unicode order**.
+Nothing is reordered, reshaped, or reversed on the way there, so what you
+paste is a correct Arabic task.
+
+The Claude Code terminal is a different matter: it draws text strictly left
+to right and implements no bidirectional algorithm, which is why logical
+Arabic reads backwards in it. The same text is therefore also shown as a
+**terminal-only preview**, reordered for display, between two English
+lines:
+
+```text
+Testing task copied to clipboard.
+
+العنوان:
+<the title, reordered for this terminal>
+
+الوصف:
+<the description, reordered for this terminal>
+
+Paste from the clipboard for the original Unicode text.
+```
+
+**Paste from the clipboard, not from that preview.** The preview is there
+so you can read what was produced; it is visually transformed purely to
+work around the terminal, it is never copied, saved, or recorded anywhere,
+and pasting it into an application that does handle Arabic would show the
+text backwards. Which clipboard is detected on every run, with nothing to
 configure:
 
 - **Claude Code inside WSL** → the **Windows host** clipboard, so you can
@@ -110,9 +134,13 @@ workflow does not move to `completed`, and no package is installed for you:
 install `wl-clipboard`, `xclip`, or `xsel` yourself, or run from a session
 that has a clipboard, and ask for the testing task again.
 
+The reverse case is harmless: if the copy succeeds but the preview cannot
+be rendered, you get an English note saying so instead of the preview. The
+clipboard still holds the task, and the workflow still completes.
+
 If deployment was skipped, the English warning that the changes are not in
-the testing environment yet is shown separately, after the Arabic text —
-never inside it.
+the testing environment yet is shown separately, after the preview — never
+inside the Arabic text.
 
 Only `testing_task.status` and `testing_task.generated_at` are recorded in
 `docs/ai-context/task-workflow.json`; the Arabic text itself is not stored
@@ -222,7 +250,7 @@ bin/frappe-workflow deployment preflight
 bin/frappe-workflow deployment required-commands [--commit <hash>]
 bin/frappe-workflow deployment verify --expected <hash> --server-head <hash>
 
-bin/frappe-workflow clipboard copy    # UTF-8 text on stdin
+bin/frappe-workflow clipboard copy [--preview]    # UTF-8 text on stdin
 
 bin/frappe-workflow security scan
 
@@ -265,15 +293,25 @@ Wayland or X11 session clipboard on a native desktop. It is what `testing`
 uses for the Arabic hand-off:
 
 ```bash
-bin/frappe-workflow clipboard copy <<'AR'
+bin/frappe-workflow clipboard copy --preview <<'AR'
 العنوان:
 اختبار نظام حجز المخزون المؤقت
 AR
 ```
 
-It writes no temporary file, prints only the method and the number of
-characters copied (never the text), and exits `8` with the list of methods
-it checked when the session has no clipboard.
+It writes no temporary file and exits `8` with the list of methods it
+checked when the session has no clipboard. Without `--preview` it prints
+only the method and the number of characters copied, never the text.
+
+`--preview` adds the terminal rendering described above: after a successful
+copy it prints the *same* text reordered by the Unicode bidirectional
+algorithm (`scripts/core/rtl_display.py`), so a terminal that draws text
+left to right shows readable Arabic. That output is for reading only — what
+reached the clipboard is the original logical text, and nothing about the
+preview is written to disk or to the workflow state. Because it is
+human-readable output by definition, `--preview` cannot be combined with
+`--json`. If the rendering fails for any reason, the copy still counts: the
+command reports that the preview is unavailable and still exits `0`.
 
 ### Exit Codes
 

@@ -13,18 +13,22 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
 import shutil
 import unittest
 from pathlib import Path
 from unittest import mock
 
 import support
-from core import clipboard, exit_codes, workflow_state
+from core import clipboard, exit_codes, rtl_display, workflow_state
 
 import cli  # noqa: E402  (scripts/ is on sys.path via support)
 
 # Realistic payload: the shape the testing-task skill produces.
 ARABIC = "العنوان:\nاختبار نظام حجز المخزون المؤقت\n\nالوصف:\nيرجى اختبار منطق حجز الكميات مؤقتاً.\n"
+
+# The stored hand-off, used by the preview tests below.
+FIXTURE_AR = support.FIXTURES_DIR / "sample-testing-task-ar.txt"
 
 _real_subprocess_run = clipboard.subprocess.run
 
@@ -518,6 +522,222 @@ class ClipboardCliTests(unittest.TestCase):
         self.assertFalse(payload["copied"])
         self.assertEqual(payload["checked"][0]["method"], "wl-copy")
         self.assert_state_untouched()
+
+
+class PreviewCliTests(unittest.TestCase):
+    """`--preview`: the clipboard keeps the logical text, the terminal gets the visual one.
+
+    The regression fixture is the real hand-off shape — Arabic prose with
+    the DocType and status names the testing team reads in Latin script —
+    so these assertions cover both halves of the split at once.
+    """
+
+    LOGICAL = FIXTURE_AR.read_text(encoding="utf-8")
+    LOGICAL_PAYLOAD = LOGICAL.rstrip("\n")
+    LATIN_RUNS = ("Workflow Test Item", "Draft", "Active", "Archived")
+
+    def setUp(self):
+        self.repo = support.make_temp_dir()
+        self.addCleanup(shutil.rmtree, self.repo, True)
+        workflow_state.init_state(self.repo)
+        self.state_path = workflow_state.state_path(self.repo)
+        self.state_before = self.state_path.read_bytes()
+        self.copied: list[str] = []
+
+    # -- helpers ----------------------------------------------------------
+
+    def spy_copy(self, copied=True):
+        """A ``clipboard.copy`` replacement that records what it was given."""
+
+        def copy(text, *args, **kwargs):
+            self.copied.append(text)
+            if not copied:
+                return clipboard.CopyResult(
+                    copied=False,
+                    platform="linux",
+                    error=clipboard.NO_CLIPBOARD_LINUX,
+                    hint=clipboard.INSTALL_HINT_LINUX,
+                    attempts=(
+                        clipboard.Attempt("xclip", "X11", "unavailable", "DISPLAY is not set"),
+                    ),
+                )
+            return clipboard.CopyResult(
+                copied=True,
+                platform="linux",
+                method="wl-copy",
+                target="desktop clipboard",
+                characters=len(text.rstrip("\n")),
+            )
+
+        return copy
+
+    def run_cli(self, *args: str, stdin_text: str = None) -> tuple[int, str, str]:
+        stdin = io.TextIOWrapper(
+            io.BytesIO((self.LOGICAL if stdin_text is None else stdin_text).encode("utf-8"))
+        )
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.object(cli.sys, "stdin", stdin), mock.patch.object(
+            cli.sys, "stdout", out
+        ), mock.patch.object(cli.sys, "stderr", err):
+            code = cli.main([*args])
+        return code, out.getvalue(), err.getvalue()
+
+    def copy_with_preview(self, copied=True) -> tuple[int, str, str]:
+        with mock.patch.object(clipboard, "copy", self.spy_copy(copied)):
+            return self.run_cli("clipboard", "copy", "--preview")
+
+    def assert_state_untouched(self):
+        self.assertEqual(self.state_path.read_bytes(), self.state_before)
+
+    # -- the split --------------------------------------------------------
+
+    def test_the_clipboard_receives_the_unchanged_logical_text(self):
+        code, _out, _err = self.copy_with_preview()
+        self.assertEqual(code, exit_codes.SUCCESS)
+        self.assertEqual(self.copied, [self.LOGICAL])
+
+    def test_the_terminal_receives_the_visual_text_and_not_the_logical_one(self):
+        _code, out, _err = self.copy_with_preview()
+        visual = rtl_display.to_visual(self.LOGICAL_PAYLOAD)
+        self.assertIn(visual, out)
+        for line in self.LOGICAL_PAYLOAD.split("\n"):
+            if line and line != rtl_display.to_visual(line):
+                with self.subTest(line=line):
+                    self.assertNotIn(line, out)
+
+    def test_the_two_representations_differ_for_arabic(self):
+        _code, out, _err = self.copy_with_preview()
+        self.assertNotEqual(rtl_display.to_visual(self.LOGICAL_PAYLOAD), self.LOGICAL_PAYLOAD)
+        self.assertNotIn(self.LOGICAL_PAYLOAD, out)
+
+    def test_the_visual_text_never_reaches_the_clipboard(self):
+        self.copy_with_preview()
+        visual = rtl_display.to_visual(self.LOGICAL_PAYLOAD)
+        for text in self.copied:
+            with self.subTest(text=text[:20]):
+                self.assertNotIn(visual, text)
+                self.assertNotEqual(text.rstrip("\n"), visual)
+
+    def test_latin_words_keep_their_order_in_the_preview(self):
+        _code, out, _err = self.copy_with_preview()
+        for word in self.LATIN_RUNS:
+            with self.subTest(word=word):
+                self.assertIn(word, out)
+                self.assertNotIn(word[::-1], out)
+
+    def test_the_preview_keeps_the_blank_line_between_the_two_blocks(self):
+        _code, out, _err = self.copy_with_preview()
+        visual_lines = rtl_display.to_visual(self.LOGICAL_PAYLOAD).split("\n")
+        self.assertEqual(visual_lines[2], "")
+        self.assertIn("\n".join(visual_lines), out)
+
+    def test_the_output_names_the_clipboard_as_the_source_to_paste_from(self):
+        _code, out, _err = self.copy_with_preview()
+        lines = out.strip().split("\n")
+        self.assertEqual(lines[0], cli.PREVIEW_HEADLINE)
+        self.assertEqual(lines[-1], cli.PREVIEW_FOOTER)
+        self.assertIn("clipboard", cli.PREVIEW_FOOTER)
+
+    # -- failure modes ----------------------------------------------------
+
+    def test_a_failed_rendering_keeps_the_successful_copy(self):
+        with mock.patch.object(clipboard, "copy", self.spy_copy()), mock.patch.object(
+            cli.rtl_display, "to_visual", side_effect=RuntimeError("boom")
+        ):
+            code, out, err = self.run_cli("clipboard", "copy", "--preview")
+        self.assertEqual(code, exit_codes.SUCCESS)
+        self.assertEqual(self.copied, [self.LOGICAL])
+        self.assertIn(cli.PREVIEW_HEADLINE, out)
+        self.assertIn("preview could not be formatted", out)
+        self.assertEqual(err, "")
+        # Never the logical text as a consolation prize.
+        self.assertNotIn("العنوان", out)
+
+    def test_no_preview_is_printed_when_the_copy_fails(self):
+        code, out, err = self.copy_with_preview(copied=False)
+        self.assertEqual(code, exit_codes.CLIPBOARD_UNAVAILABLE)
+        self.assertEqual(out, "")
+        self.assertIn("No desktop clipboard is available", err)
+        for word in ("العنوان", "الوصف", cli.PREVIEW_HEADLINE):
+            with self.subTest(word=word):
+                self.assertNotIn(word, out + err)
+
+    def test_preview_cannot_be_combined_with_json(self):
+        with mock.patch.object(clipboard, "copy", self.spy_copy()):
+            code, out, err = self.run_cli("--json", "clipboard", "copy", "--preview")
+        self.assertEqual(code, exit_codes.INVALID_USAGE)
+        self.assertEqual(self.copied, [], "nothing may be copied by a rejected command")
+        self.assertEqual(out, "")
+        self.assertIn("cannot be combined", err)
+
+    def test_json_output_still_carries_no_text(self):
+        with mock.patch.object(clipboard, "copy", self.spy_copy()):
+            code, out, _err = self.run_cli("--json", "clipboard", "copy")
+        self.assertEqual(code, exit_codes.SUCCESS)
+        payload = json.loads(out)
+        self.assertTrue(payload["copied"])
+        self.assertNotIn("العنوان", out)
+        self.assertNotIn(rtl_display.to_visual("العنوان:"), out)
+
+    # -- side effects -----------------------------------------------------
+
+    def test_the_workflow_state_is_untouched(self):
+        """Also the completed-state retry: copy and preview, change nothing."""
+        for _ in range(2):
+            code, _out, _err = self.copy_with_preview()
+            self.assertEqual(code, exit_codes.SUCCESS)
+        self.assert_state_untouched()
+        state = workflow_state.load_state(self.repo)
+        self.assertEqual(state["current_stage"], "planning")
+        self.assertEqual(state["testing_task"]["status"], "pending")
+
+    def test_nothing_is_written_to_disk(self):
+        workdir = support.make_temp_dir()
+        self.addCleanup(shutil.rmtree, workdir, True)
+        before = sorted(path.name for path in workdir.iterdir())
+        with mock.patch.dict(
+            os.environ, {"TMPDIR": str(workdir), "TEMP": str(workdir), "TMP": str(workdir)}
+        ):
+            self.copy_with_preview()
+        self.assertEqual(sorted(path.name for path in workdir.iterdir()), before)
+
+    # -- both supported platforms ----------------------------------------
+
+    def test_the_preview_is_produced_on_wsl_and_on_a_native_desktop(self):
+        environments = (
+            ("wsl", {"WSL_DISTRO_NAME": "Ubuntu"}, ("powershell.exe",)),
+            ("wayland", WAYLAND_ENV, ("wl-copy",)),
+            ("x11", X11_ENV, ("xclip",)),
+        )
+        visual = rtl_display.to_visual(self.LOGICAL_PAYLOAD)
+        for name, env, tools in environments:
+            with self.subTest(session=name):
+                runner = Runner()
+                real_copy = clipboard.copy
+
+                def copy(text, _env=env, _tools=tools, _runner=runner):
+                    self.copied.append(text)
+                    return real_copy(
+                        text, env=_env, which=fake_which(*_tools), run=_runner
+                    )
+
+                context = no_wsl_kernel() if name != "wsl" else mock.patch.object(
+                    clipboard, "is_wsl", return_value=True
+                )
+                with context, mock.patch.object(clipboard, "copy", copy):
+                    code, out, _err = self.run_cli("clipboard", "copy", "--preview")
+                self.assertEqual(code, exit_codes.SUCCESS)
+                self.assertIn(visual, out)
+                self.assertEqual(runner.executables, [tools[0]])
+                # The logical text is what the platform tool received.
+                stdin = runner.calls[0]["stdin"]
+                if stdin is not None:
+                    self.assertEqual(stdin, self.LOGICAL_PAYLOAD.encode("utf-8"))
+                else:  # PowerShell carries it Base64-encoded in the command.
+                    expected = base64.b64encode(
+                        self.LOGICAL_PAYLOAD.encode("utf-8")
+                    ).decode("ascii")
+                    self.assertIn(expected, runner.calls[0]["argv"][4])
 
 
 class NoRealClipboardAccessTests(unittest.TestCase):

@@ -731,6 +731,25 @@ class ClipboardCommandTests(unittest.TestCase):
         result = self.run_clipboard("  \n\n", "copy")
         self.assertEqual(result.returncode, 2, result.stderr)
 
+    def test_preview_flag_is_registered(self):
+        result = self.run_clipboard("", "copy", "--help")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--preview", result.stdout)
+
+    def test_preview_and_json_are_rejected_before_any_clipboard_detection(self):
+        # The rejection has to come first: a machine-readable run must not
+        # copy anything and then complain about the flags.
+        result = subprocess.run(
+            [str(CLI), "--json", "clipboard", "copy", "--preview"],
+            input="العنوان:\nاختبار\n",
+            capture_output=True,
+            text=True,
+            env=support.GIT_ENV,
+        )
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("cannot be combined", result.stderr)
+        self.assertEqual(result.stdout, "")
+
 
 if __name__ == "__main__":
     unittest.main()

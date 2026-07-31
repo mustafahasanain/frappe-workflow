@@ -59,9 +59,9 @@ Actions:
 
   testing       Generate a concise Arabic testing-team title and
                 description from the approved implemented behavior, copy
-                them to your clipboard, and print them here for pasting
-                into your task-management system.
-                Nothing is saved to a file.
+                them to your clipboard for pasting into your
+                task-management system, and show a readable preview of
+                them here. Nothing is saved to a file.
 
   reset         Reset the active task workflow state after explicit
                 confirmation. Never touches Git history, application
