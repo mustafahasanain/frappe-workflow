@@ -149,8 +149,9 @@ deployment skill
 
 Requires stage `deployed` or `deployment_skipped`. Delegate to the
 testing-task skill: Arabic title + description from the approved behavior,
-**printed in the terminal** in this shape so the user can copy them into
-their task-management system —
+**copied to the host clipboard** with `CLI clipboard copy` (text on stdin)
+and then **printed in the terminal** in this shape, so the user can paste
+them into their task-management system —
 
 ```text
 العنوان:
@@ -165,9 +166,15 @@ their task-management system —
 `state transition completed`. When deployment was skipped, show the English
 skip warning separately, after the Arabic text (never inside it).
 
+The copy comes first and gates everything after it. If `clipboard copy`
+exits 8 (no clipboard reachable from this session), stop: show the checked
+methods it lists, print no Arabic text, record no state, and
+transition nothing. Ask the user to install `wl-clipboard`, `xclip`, or
+`xsel` — the plugin never installs packages — and to ask again.
+
 No file is written: there is no `testing-task-ar.md` and no replacement for
-it. If the user asks for the text again once the stage is `completed`,
-reprint it and change nothing.
+it. If the user asks for the text again once the stage is `completed`, copy
+and print it again and change nothing.
 
 ## `reset`
 

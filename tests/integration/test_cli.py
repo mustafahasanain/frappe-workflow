@@ -698,5 +698,39 @@ class SharedLayoutTrackingTests(unittest.TestCase):
         self.assertNotIn(token, result.stdout)
 
 
+class ClipboardCommandTests(unittest.TestCase):
+    """Surface-level checks only.
+
+    A real `clipboard copy` would touch the clipboard of whatever machine
+    runs the suite, so every platform branch is covered by the mocked unit
+    tests instead. What is exercised here is the wiring that cannot reach a
+    clipboard: the command exists, and empty input is rejected before any
+    detection runs.
+    """
+
+    def run_clipboard(self, stdin_text: str, *args: str):
+        return subprocess.run(
+            [str(CLI), "clipboard", *args],
+            input=stdin_text,
+            capture_output=True,
+            text=True,
+            env=support.GIT_ENV,
+        )
+
+    def test_command_is_registered(self):
+        result = self.run_clipboard("", "--help")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("copy", result.stdout)
+
+    def test_empty_stdin_is_invalid_usage(self):
+        result = self.run_clipboard("", "copy")
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("empty", result.stderr)
+
+    def test_whitespace_only_stdin_is_invalid_usage(self):
+        result = self.run_clipboard("  \n\n", "copy")
+        self.assertEqual(result.returncode, 2, result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

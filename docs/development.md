@@ -55,6 +55,7 @@ they exist once.
 | `core/review_bundle.py` | Prompt building, round numbering, result parsing |
 | `core/deployment.py` | Config validation, SSH argv construction, preflight evaluation, command matrix |
 | `core/security.py` | Secret patterns, redaction, forbidden filenames |
+| `core/clipboard.py` | WSL-vs-native detection and the ordered clipboard methods; `env`, `which`, and `run` are the injectable seams, so no test touches a real clipboard |
 | `core/exit_codes.py` | The stable exit-code constants |
 
 Constraints for anything added here: standard library only, `pathlib` for

@@ -321,16 +321,59 @@ From `committed`, run `deploy` first and answer the question — choosing
 adds the separate warning that the changes are not in the testing
 environment yet.
 
+## The testing task was not copied to my clipboard (exit code 8)
+
+The `testing` action delivers the Arabic text through the clipboard, and it
+stops rather than half-finishing when no clipboard is reachable. The error
+lists every method it checked; the fix depends on which line applies.
+
+**Native Linux desktop.**
+
+```text
+No desktop clipboard is available from this session (headless, SSH without
+clipboard forwarding, or no clipboard utility installed).
+Checked:
+  - wl-copy (Wayland): WAYLAND_DISPLAY is set but wl-copy is not installed
+  - xclip (X11): DISPLAY is not set
+  - xsel (X11): DISPLAY is not set
+```
+
+Install the tool for your session type yourself — `wl-clipboard` for
+Wayland, `xclip` or `xsel` for X11. The plugin never installs packages. If
+every line says the variable "is not set", the session has no display at
+all (SSH without forwarding, or a headless machine): run the workflow from
+the desktop session instead.
+
+**WSL on Windows.**
+
+```text
+The Windows host clipboard is not reachable from this WSL session.
+Checked:
+  - powershell.exe (Windows host): not on PATH and not at
+    /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+```
+
+Windows interop is off or the Windows paths were stripped from `PATH`.
+Check `/etc/wsl.conf` (`[interop] enabled=true`, `appendWindowsPath=true`)
+and restart the distribution with `wsl --shutdown` from Windows. A Linux
+clipboard tool inside WSL is deliberately **not** used as a fallback: it
+would fill a clipboard that Windows applications cannot paste from.
+
+Nothing is left half-done by the failure: no Arabic text is printed (a
+terminal renders it visually reordered, which is not safe to copy by hand),
+`testing_task` is not recorded, and the stage does not move to `completed`.
+Fix the clipboard and ask for the testing task again.
+
 ## Where is the testing task file?
 
-There is none, by design. `testing` prints the Arabic title and description
-in the terminal so you can copy them into your task-management system;
-nothing is written to `docs/ai-context/`, to `.claude/`, or anywhere else,
-and the text is not kept in the workflow state.
+There is none, by design. `testing` copies the Arabic title and description
+to your clipboard and prints them in the terminal; nothing is written to
+`docs/ai-context/`, to `.claude/`, or anywhere else, and the text is not
+kept in the workflow state.
 
-If you scrolled past the output, ask for the testing task again — it is
-regenerated from the same approved behavior and printed once more, with no
-change to the `completed` state.
+If you lost the clipboard contents or scrolled past the output, ask for the
+testing task again — it is regenerated from the same approved behavior,
+copied and printed once more, with no change to the `completed` state.
 
 An application that was initialized by an older plugin version may still
 contain `.claude/testing-task-ar.md` or

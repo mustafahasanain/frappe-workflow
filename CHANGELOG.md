@@ -47,6 +47,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The Arabic testing task is copied to the host clipboard** — `testing`
+  now puts the title and description on the clipboard before printing them,
+  so the text can be pasted intact instead of copied out of a terminal that
+  renders Arabic visually reordered. The environment is detected on every
+  run, with nothing to configure: inside WSL the text goes to the **Windows
+  host** clipboard through `powershell.exe` and `Set-Clipboard` (it crosses
+  as Base64 and is decoded to UTF-8 there, never interpolated into the
+  script, and `clip.exe` is never used); on a native Linux desktop it goes
+  to the session clipboard through `wl-copy` (Wayland), `xclip`, or `xsel`
+  (X11), and `powershell.exe` is never invoked. A session with no reachable
+  clipboard — headless, SSH without forwarding, or no utility installed —
+  is a clean stop that lists every method it checked: no Arabic is printed,
+  no file is written, `testing_task` is not recorded, and the workflow does
+  not reach `completed`. Packages are never installed for you.
+- **`frappe-workflow clipboard copy`** — the helper behind it, reading
+  UTF-8 text from stdin, writing no temporary file, printing only the
+  method and the character count, and exiting with the new code `8` when no
+  clipboard is available.
 - **`frappe-workflow project` commands** — `paths` (every managed location
   as JSON), `ensure-gitignore` (idempotent managed block), and
   `migrate [--dry-run]` (move an old-layout application onto

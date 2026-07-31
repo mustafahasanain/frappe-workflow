@@ -1,4 +1,4 @@
-"""The `testing` action prints its result and creates no file.
+"""The `testing` action copies its result, prints it, and creates no file.
 
 The Arabic title and description are produced by the model, so the skill
 instructions *are* the implementation. What can be tested deterministically
@@ -140,9 +140,27 @@ class TestingSkillInstructionsTests(unittest.TestCase):
             with self.subTest(label=label):
                 self.assertIn(label, self.rules)
 
-    def test_rules_require_terminal_output(self):
+    def test_rules_require_the_clipboard_then_terminal_output(self):
         self.assertRegex(self.rules, r"print(ed)?\s+them\s+directly\s+in\s+the\s+terminal")
-        self.assertIn("Terminal Output Only", self.rules)
+        self.assertIn("Clipboard First, Then Terminal", self.rules)
+        self.assertIn("clipboard copy", self.rules)
+        self.assertIn("Never a File", self.rules)
+
+    def test_rules_stop_the_workflow_when_the_clipboard_is_unavailable(self):
+        section = self.rules.split("### 3. On a missing clipboard")[1].split("\n### ")[0]
+        self.assertIn("exit `8`", self.rules)
+        for requirement in (
+            "not** print the Arabic text",
+            "do not record `testing_task`",
+            "do not transition to `completed`",
+            "Never** install a package",
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement, section)
+
+    def test_rules_record_state_only_after_a_successful_copy(self):
+        closing = self.rules.split("## Closing")[1]
+        self.assertIn("Only after a successful copy", closing)
 
     def test_rules_record_only_status_and_timestamp(self):
         self.assertIn("state set testing_task.status generated", self.rules)
@@ -155,16 +173,37 @@ class TestingSkillInstructionsTests(unittest.TestCase):
         self.assertIn("generated_at", self.skill)
         self.assertNotIn("path, generated_at", self.skill)
 
+    def test_skill_gates_everything_on_the_clipboard_copy(self):
+        section = self.skill.split("## Order of Operations")[1].split("\n## ")[0]
+        self.assertIn("clipboard copy", section)
+        self.assertIn("Exit code `0`", section)
+        self.assertIn("Exit code `8`", section)
+        # A failed copy must stop the workflow, not fall back to printing.
+        self.assertIn("Print nothing of the Arabic", section)
+        self.assertIn("record no state", section)
+        self.assertIn("transition nothing", section)
+        self.assertIn("Never install a package", section)
+
+    def test_skill_forbids_completing_after_a_failed_copy(self):
+        prohibited = self.skill.split("## Prohibited")[1].split("\n## ")[0]
+        self.assertIn("failed clipboard copy", prohibited)
+        self.assertIn("Installing a clipboard package", prohibited)
+
     def test_deployment_skipped_warning_is_still_english_and_separate(self):
         self.assertIn("Deployment was skipped.", self.skill)
         self.assertIn("Never embed the warning inside the Arabic description.", self.skill)
 
-    def test_routing_prints_and_transitions(self):
+    def test_routing_copies_prints_and_transitions(self):
         routing = ROUTING_DOC.read_text(encoding="utf-8")
         testing_section = routing.split("## `testing`")[1].split("\n## ")[0]
+        self.assertIn("clipboard copy", testing_section)
         self.assertIn("printed in the terminal", testing_section)
         self.assertIn("state transition completed", testing_section)
         self.assertIn("No file is written", testing_section)
+        # The failure path must be routed too, not left to improvisation.
+        self.assertIn("exits 8", testing_section)
+        self.assertIn("print no Arabic text", testing_section)
+        self.assertIn("transition nothing", testing_section)
 
 
 class StatusOutputTests(unittest.TestCase):

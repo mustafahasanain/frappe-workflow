@@ -71,6 +71,13 @@ them stops review, staging, and completion like any other.
 - Remote SSH commands are built from validated fields
   (host/user/branch/site/path character allow-lists) and shell-quoted with
   `shlex.quote` for the remote side.
+- Clipboard payloads are data, never code: `wl-copy`, `xclip`, and `xsel`
+  receive the text on stdin, and `powershell.exe` receives it Base64-encoded
+  and decodes it at runtime with
+  `[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(...))`. No
+  generated content is ever interpolated into PowerShell source — only the
+  Base64 alphabet may cross that boundary — and clipboard contents are
+  never logged, echoed back, or written to a temporary file.
 
 ## Review Prompts and Commits
 

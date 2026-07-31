@@ -129,12 +129,13 @@ class HelpDocumentTests(unittest.TestCase):
             with self.subTest(stale=stale):
                 self.assertNotIn(stale, self.block)
 
-    def test_testing_action_is_described_as_terminal_output(self):
-        """Help must not promise a file the plugin no longer writes."""
+    def test_testing_action_is_described_as_clipboard_and_terminal_output(self):
+        """Help must promise the clipboard, and no file the plugin never writes."""
         self.assertNotIn("testing-task-ar", self.block)
         description = re.search(
             r"^  testing {2,}(.+?)\n\n", self.block, re.S | re.M
         ).group(1)
+        self.assertRegex(description, r"clipboard")
         self.assertRegex(description, r"print")
         self.assertRegex(description, r"[Nn]othing is saved to a file")
 

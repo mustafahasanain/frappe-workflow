@@ -82,8 +82,8 @@ current task — later phases become their own tasks.
 ## The Arabic Testing Task
 
 `testing` closes the workflow. It writes **no file**: the title and
-description are printed straight into the Claude Code terminal, in this
-shape, ready to copy into your task-management system:
+description are copied to your clipboard and printed in the Claude Code
+terminal, in this shape, ready to paste into your task-management system:
 
 ```text
 العنوان:
@@ -92,6 +92,23 @@ shape, ready to copy into your task-management system:
 الوصف:
 <Arabic description>
 ```
+
+The clipboard is the actual hand-off — a terminal shows Arabic visually
+reordered, so the printed copy is only there for you to see what was
+produced. Which clipboard is detected on every run, with nothing to
+configure:
+
+- **Claude Code inside WSL** → the **Windows host** clipboard, so you can
+  paste into any Windows application outside WSL.
+- **Claude Code on a native Linux desktop** → the clipboard of the current
+  session: `wl-copy` under Wayland, otherwise `xclip` or `xsel` under X11.
+
+If no clipboard is reachable — a headless or SSH session without clipboard
+forwarding, or no clipboard utility installed — the action stops and tells
+you which methods it checked. Nothing is printed, nothing is recorded, the
+workflow does not move to `completed`, and no package is installed for you:
+install `wl-clipboard`, `xclip`, or `xsel` yourself, or run from a session
+that has a clipboard, and ask for the testing task again.
 
 If deployment was skipped, the English warning that the changes are not in
 the testing environment yet is shown separately, after the Arabic text —
@@ -205,6 +222,8 @@ bin/frappe-workflow deployment preflight
 bin/frappe-workflow deployment required-commands [--commit <hash>]
 bin/frappe-workflow deployment verify --expected <hash> --server-head <hash>
 
+bin/frappe-workflow clipboard copy    # UTF-8 text on stdin
+
 bin/frappe-workflow security scan
 
 bin/frappe-workflow project paths
@@ -240,6 +259,22 @@ bin/frappe-workflow project paths
 idempotently, and `project migrate` moves an old-layout application onto
 `docs/ai-context/`. Both are run by the `init` action.
 
+`clipboard copy` reads UTF-8 text from stdin and puts it on the clipboard
+of the detected environment — the Windows host clipboard from WSL, the
+Wayland or X11 session clipboard on a native desktop. It is what `testing`
+uses for the Arabic hand-off:
+
+```bash
+bin/frappe-workflow clipboard copy <<'AR'
+العنوان:
+اختبار نظام حجز المخزون المؤقت
+AR
+```
+
+It writes no temporary file, prints only the method and the number of
+characters copied (never the text), and exits `8` with the list of methods
+it checked when the session has no clipboard.
+
 ### Exit Codes
 
 ```text
@@ -251,6 +286,7 @@ idempotently, and `project migrate` moves an old-layout application onto
 5 = workflow transition rejected
 6 = deployment preflight failure
 7 = security scan failure
+8 = no clipboard available in this session
 ```
 
 Errors always go to stderr; validation-only commands never mutate state;

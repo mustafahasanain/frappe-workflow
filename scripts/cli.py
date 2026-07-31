@@ -20,6 +20,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from core import (  # noqa: E402
+    clipboard,
     deployment,
     environment,
     exit_codes,
@@ -409,6 +410,34 @@ def cmd_project(args) -> int:
     return exit_codes.INVALID_USAGE
 
 
+def cmd_clipboard(args) -> int:
+    if args.clipboard_command != "copy":
+        _err("unknown clipboard command")
+        return exit_codes.INVALID_USAGE
+
+    # Read bytes, not text: the payload is Arabic UTF-8 and must not depend
+    # on the locale encoding of the terminal it was piped from.
+    try:
+        text = sys.stdin.buffer.read().decode("utf-8")
+    except UnicodeDecodeError as exc:
+        _err(f"stdin is not valid UTF-8: {exc}")
+        return exit_codes.INVALID_USAGE
+
+    try:
+        result = clipboard.copy(text)
+    except clipboard.ClipboardError as exc:
+        _err(f"{exc}; pipe the text to copy into this command on stdin")
+        return exit_codes.INVALID_USAGE
+
+    if args.json:
+        _out(result.to_dict(), True)
+    elif result.copied:
+        _out(result.render(), False)
+    else:
+        _err(result.render())
+    return exit_codes.SUCCESS if result.copied else exit_codes.CLIPBOARD_UNAVAILABLE
+
+
 def cmd_security(args) -> int:
     if args.security_command != "scan":
         _err("unknown security command")
@@ -545,6 +574,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Report what would move without touching any file",
     )
 
+    p_clipboard = sub.add_parser(
+        "clipboard", help="Copy text to the clipboard of the detected environment"
+    )
+    clipboard_sub = p_clipboard.add_subparsers(dest="clipboard_command", required=True)
+    clipboard_sub.add_parser(
+        "copy",
+        help=(
+            "Copy UTF-8 text read from stdin to the Windows host clipboard "
+            "(WSL) or the desktop clipboard (native Linux)"
+        ),
+    )
+
     p_security = sub.add_parser("security", help="Secret scanning")
     security_sub = p_security.add_subparsers(dest="security_command", required=True)
     security_sub.add_parser(
@@ -563,6 +604,7 @@ HANDLERS = {
     "review": cmd_review,
     "deployment": cmd_deployment,
     "project": cmd_project,
+    "clipboard": cmd_clipboard,
     "security": cmd_security,
 }
 

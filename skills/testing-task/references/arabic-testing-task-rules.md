@@ -2,9 +2,10 @@
 
 ## Output Shape
 
-Generate only two labeled parts, with Arabic content, and print them
-directly in the terminal so the user can copy them into the testing team's
-task-management system. Nothing is written to disk:
+Generate only two labeled parts, with Arabic content. Copy them to the
+host clipboard first, then print them directly in the terminal, so the user
+can paste them into the testing team's task-management system. Nothing is
+written to disk:
 
 ```text
 العنوان:
@@ -51,9 +52,50 @@ task-management system. Nothing is written to disk:
 - The deployment-skipped warning (it is shown separately, in English).
 - A restatement of only the original task title.
 
-## Terminal Output Only
+## Clipboard First, Then Terminal
 
-- The two blocks above are the whole deliverable, printed in the terminal.
+The two blocks above are the whole deliverable. Deliver them in this order,
+and never through a file.
+
+### 1. Copy to the clipboard
+
+Pipe the finished text into the helper on stdin, with a quoted here-doc so
+nothing in the content is expanded or reinterpreted:
+
+```bash
+bin/frappe-workflow clipboard copy <<'AR'
+العنوان:
+<Arabic title>
+
+الوصف:
+<Arabic description>
+AR
+```
+
+The helper detects the environment on every run: inside WSL it copies to
+the **Windows host clipboard** through `powershell.exe`, on a native Linux
+desktop to the **session clipboard** through `wl-copy`, `xclip`, or `xsel`.
+Nothing has to be configured, and the text never touches disk.
+
+### 2. On success (exit `0`)
+
+Print the same two blocks in the terminal and say that they are already on
+the clipboard. Then record the state and close the workflow.
+
+### 3. On a missing clipboard (exit `8`)
+
+Stop. The command prints which methods it checked and why each was
+unavailable; show that, and ask the user to install `wl-clipboard`, `xclip`,
+or `xsel` — or to run from a session that has a clipboard — and then to ask
+for the testing task again. **Never** install a package yourself.
+
+Do **not** print the Arabic text in this case: a terminal shows it visually
+reordered, so copying it by hand from there produces a corrupted task. And
+do not record `testing_task`, do not transition to `completed`, and do not
+"rescue" the text into a file.
+
+### Never a File
+
 - **Never** create `docs/ai-context/testing-task-ar.md`,
   `.claude/testing-task-ar.md`, or any other file holding this content, and
   never store the Arabic text in the workflow state.
@@ -61,13 +103,14 @@ task-management system. Nothing is written to disk:
   `testing-task-ar.md` from the days when the file was saved. It is a
   legacy artifact: not read, not updated, not staged, not migrated, and not
   deleted — not even by a confirmed `reset`.
-- If the user loses the printed text after the workflow reached
-  `completed`, print it again from the same approved behavior and write
-  nothing: no state change, no transition, no file.
+- If the user loses the text after the workflow reached `completed`, copy
+  and print it again from the same approved behavior and write nothing: no
+  state change, no transition, no file.
 
 ## Closing
 
-Record only that the task was generated, and when:
+Only after a successful copy — record only that the task was generated, and
+when:
 
 ```bash
 bin/frappe-workflow state set testing_task.status generated
