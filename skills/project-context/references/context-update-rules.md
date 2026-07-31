@@ -4,7 +4,7 @@
 
 ```text
 Will a future agent misunderstand the project or inspect the wrong files
-if PROJECT_CONTEXT.md is not updated?
+if docs/ai-context/PROJECT_CONTEXT.md is not updated?
 ```
 
 Answer **no** → do not change content. The `analyzed_commit` may still be
@@ -24,7 +24,7 @@ advanced after confirming the code changes require no content change.
 ## Do NOT Update For
 
 - Bug fixes inside an already-documented component (behavior details belong
-  to `FEATURE_CHANGELOG.md`).
+  to `docs/ai-context/FEATURE_CHANGELOG.md`).
 - Refactors that keep files and responsibilities in place.
 - New fields on a documented DocType that don't change its role.
 - Anything readable by opening the already-referenced file.
@@ -42,5 +42,6 @@ advanced after confirming the code changes require no content change.
 
 - Keep sections concise; component blocks over prose walls.
 - Reference files; never paste function bodies.
-- Related Feature IDs stay in sync with `FEATURE_CHANGELOG.md` entries
+- Related Feature IDs stay in sync with
+  `docs/ai-context/FEATURE_CHANGELOG.md` entries
   touched by the same finalization.

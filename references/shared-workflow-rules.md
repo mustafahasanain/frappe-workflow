@@ -7,10 +7,11 @@ Rules that apply to every skill in this plugin.
 When sources disagree, trust them in this order:
 
 1. **The repository itself** — actual code, actual paths, actual Git history.
-2. **`.claude/task-workflow.json`** — the logical workflow state (stage,
+2. **`docs/ai-context/task-workflow.json`** — the logical workflow state (stage,
    review rounds, fingerprints, commit status).
-3. **`TASK_PLAN.md`** — what was agreed for the active task.
-4. **`PROJECT_CONTEXT.md` / `FEATURE_CHANGELOG.md`** — navigation and
+3. **`docs/ai-context/TASK_PLAN.md`** — what was agreed for the active task.
+4. **`docs/ai-context/PROJECT_CONTEXT.md` /
+   `docs/ai-context/FEATURE_CHANGELOG.md`** — navigation and
    feature history; useful, but re-verify against code before acting.
 5. **User-provided plans or descriptions** — input to validate, never
    unquestionable truth.
@@ -30,7 +31,7 @@ replace it (Git cannot tell whether a plan was approved or a review passed).
 
 ## How State Is Written
 
-Never hand-edit `.claude/task-workflow.json`. Every write goes through the
+Never hand-edit `docs/ai-context/task-workflow.json`. Every write goes through the
 CLI so it stays atomic and validated:
 
 ```bash
@@ -56,7 +57,8 @@ when the field is a number, boolean, or null.
 
 ## No Silent Scope Changes
 
-- The business objective in `TASK_PLAN.md` is fixed once planning completes.
+- The business objective in `docs/ai-context/TASK_PLAN.md` is fixed once
+  planning completes.
 - Technical corrections (wrong path, missing validation step, missing
   migration) may be added and must be recorded in the plan.
 - Adding features, changing the objective, or expanding product scope
@@ -80,9 +82,11 @@ when the field is a number, boolean, or null.
 
 ## Context and Feature-Changelog Timing
 
-- `PROJECT_CONTEXT.md` is updated only when a future agent would otherwise
+- `docs/ai-context/PROJECT_CONTEXT.md` is updated only when a future agent
+  would otherwise
   misunderstand the project or inspect the wrong files.
-- `FEATURE_CHANGELOG.md` is **never** updated during implementation — only
+- `docs/ai-context/FEATURE_CHANGELOG.md` is **never** updated during
+  implementation — only
   after Codex returns a valid `APPROVED` (see the feature-changelog skill).
 
 ## User Approval Boundaries

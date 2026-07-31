@@ -145,6 +145,5 @@ ssh-agent, or your SSH config. See
 ## Uninstalling
 
 Stop passing `--plugin-dir`. Nothing is installed globally. Files the
-plugin generated inside a target application (`PROJECT_CONTEXT.md`,
-`FEATURE_CHANGELOG.md`, `TASK_PLAN.md`, `.claude/`) stay where they are and
-are yours to keep or delete.
+plugin generated inside a target application (`docs/ai-context/` and
+`.claude/`) stay where they are and are yours to keep or delete.

@@ -35,7 +35,8 @@ What the application must do when this task is complete.
 
 ## Existing Feature Analysis
 
-Result of searching FEATURE_CHANGELOG.md: related feature IDs, whether this
+Result of searching docs/ai-context/FEATURE_CHANGELOG.md: related feature
+IDs, whether this
 task is new functionality, an extension, or overlaps existing behavior, and
 what inspection of the actual files showed.
 

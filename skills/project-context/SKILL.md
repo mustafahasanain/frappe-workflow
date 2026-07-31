@@ -6,13 +6,15 @@ user-invocable: false
 
 # Project Context Skill
 
-Maintains `PROJECT_CONTEXT.md` in the target app repository: a concise map
+Maintains `docs/ai-context/PROJECT_CONTEXT.md` in the target app
+repository: a concise map
 that prevents future agents from rereading the whole repository. It is not
 a code dump, not a Git history, not a feature archive, not a task tracker.
 
 ## When to Use
 
-- During `init` when `PROJECT_CONTEXT.md` is missing → first-time analysis
+- During `init` when `docs/ai-context/PROJECT_CONTEXT.md` is missing →
+  first-time analysis
   ([references/full-project-analysis.md](references/full-project-analysis.md)).
 - During `init` or `start` when it exists → incremental analysis
   ([references/incremental-analysis.md](references/incremental-analysis.md)).
@@ -23,13 +25,13 @@ a code dump, not a Git history, not a feature archive, not a task tracker.
 ## Inputs
 
 - Target app repository root (from `bin/frappe-workflow detect --json`).
-- Template: `templates/project/PROJECT_CONTEXT.md` (plugin root).
+- Template: `templates/project/PROJECT_CONTEXT.md` (plugin repository).
 - Current HEAD (`git rev-parse HEAD`) and, for incremental runs, the
   recorded `analyzed_commit`.
 
 ## Outputs
 
-- `PROJECT_CONTEXT.md` at the app repository root, passing
+- `docs/ai-context/PROJECT_CONTEXT.md` in the app repository, passing
   `bin/frappe-workflow validate project-context`.
 - Frontmatter with `analyzed_commit` set to the commit that was analyzed.
 

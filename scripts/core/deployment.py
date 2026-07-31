@@ -16,7 +16,11 @@ import shlex
 from pathlib import Path
 from typing import Optional
 
-CONFIG_RELATIVE_PATH = Path(".claude") / "deployment.local.json"
+from . import project_files
+
+# Deployment configuration is machine-specific: it stays under .claude/ and
+# is never moved into the shared docs/ai-context/ tree.
+CONFIG_RELATIVE_PATH = Path(project_files.DEPLOYMENT_CONFIG)
 
 REQUIRED_FIELDS = {
     "host": str,
@@ -46,7 +50,7 @@ def load_config(repo_root: Path) -> dict:
         raise DeploymentError(
             f"Deployment configuration not found at {path}. Copy "
             "templates/state/deployment.local.json.example into "
-            ".claude/deployment.local.json and edit it. [DEPLOY_NO_CONFIG]"
+            f"{project_files.DEPLOYMENT_CONFIG} and edit it. [DEPLOY_NO_CONFIG]"
         )
     try:
         data = json.loads(path.read_text(encoding="utf-8"))

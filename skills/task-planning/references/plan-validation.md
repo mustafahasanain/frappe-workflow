@@ -41,9 +41,11 @@ Testing Plan, Acceptance Criteria, Risks and Constraints.
 
 ## Task ID Determination
 
-1. Current `TASK_PLAN.md` (if the previous task completed) → its ID.
-2. Otherwise Git history of `TASK_PLAN.md`
-   (`git log --follow -p -- TASK_PLAN.md`, scanning for `task_id:`) —
+1. Current `docs/ai-context/TASK_PLAN.md` (if the previous task
+   completed) → its ID.
+2. Otherwise Git history of the plan
+   (`git log --follow -p -- docs/ai-context/TASK_PLAN.md`, scanning for
+   `task_id:`) —
    collect all previous IDs.
 3. Next ID = max found number + 1 for the current year; never reuse a
    found ID; nothing found → `TASK-<year>-001`.

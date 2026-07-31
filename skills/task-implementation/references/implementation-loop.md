@@ -2,7 +2,7 @@
 
 For every plan step, in order (respecting step Dependencies):
 
-1. **Set `- **Status:** In Progress`** in `TASK_PLAN.md`.
+1. **Set `- **Status:** In Progress`** in `docs/ai-context/TASK_PLAN.md`.
 2. **Read only relevant files** — the step's Location plus what it
    references. Not the whole repository.
 3. **Verify unconfirmed paths** — any `Requires repository verification`

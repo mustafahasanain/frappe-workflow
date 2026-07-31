@@ -35,13 +35,13 @@ Reply using exactly this result format:
 
 ## Task Plan
 
-<full TASK_PLAN.md content>
+<full docs/ai-context/TASK_PLAN.md content>
 
 ---
 
 ## Implementation Summary
 
-<full .claude/implementation-summary.md content>
+<full docs/ai-context/implementation-summary.md content>
 
 ---
 

@@ -16,7 +16,8 @@ closes the workflow.
 
 ## Inputs
 
-- The **approved implemented behavior**: `TASK_PLAN.md` (Required
+- The **approved implemented behavior**: `docs/ai-context/TASK_PLAN.md`
+  (Required
   Behavior + Acceptance Criteria as approved), the feature-changelog entry
   updated at finalization, the implementation summary.
 - Deployment status from state.
@@ -25,7 +26,7 @@ closes the workflow.
 
 - Arabic `Title` + `Description` only — content rules in
   [references/arabic-testing-task-rules.md](references/arabic-testing-task-rules.md).
-- Copy saved to `.claude/testing-task-ar.md` (template shape:
+- Copy saved to `docs/ai-context/testing-task-ar.md` (template shape:
   `templates/output/TESTING_TASK_AR.md`).
 - State: `testing_task = {status: "generated", path, generated_at}`;
   `state transition completed`.

@@ -74,6 +74,25 @@ def read_fixture(name: str) -> str:
     return (FIXTURES_DIR / name).read_text(encoding="utf-8")
 
 
+def write_repo_file(repo: Path, relative: str, text: str) -> Path:
+    """Write *text* to ``repo/relative``, creating parent directories.
+
+    Managed files now live under ``docs/ai-context/``, so every test that
+    places one has to create the directory first. Doing it here keeps the
+    tests referring to the centralized ``project_files`` constants instead
+    of repeating path literals.
+    """
+    path = Path(repo) / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def write_fixture_file(repo: Path, relative: str, fixture_name: str) -> Path:
+    """Copy a named fixture into ``repo/relative``."""
+    return write_repo_file(repo, relative, read_fixture(fixture_name))
+
+
 def synthetic_secret(*parts: str) -> str:
     """Assemble a credential-shaped test value at runtime.
 

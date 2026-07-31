@@ -4,10 +4,10 @@
 
 `apply-review` accepts the result as command arguments, pasted content, or
 a file path. Whatever the form, first write it verbatim to
-`.claude/reviews/round-NNN-result.md` (current round from state), then:
+`docs/ai-context/reviews/round-NNN-result.md` (current round from state), then:
 
 ```bash
-bin/frappe-workflow review parse-result .claude/reviews/round-NNN-result.md
+bin/frappe-workflow review parse-result docs/ai-context/reviews/round-NNN-result.md
 ```
 
 ## Recognized Statuses
@@ -46,7 +46,7 @@ a question, not a guess).
 
 ```bash
 bin/frappe-workflow state set codex_review.status changes_required
-bin/frappe-workflow state set codex_review.result_path .claude/reviews/round-NNN-result.md
+bin/frappe-workflow state set codex_review.result_path docs/ai-context/reviews/round-NNN-result.md
 ```
 
 3. `bin/frappe-workflow state transition review_fixes --reason "round NNN changes required"`.

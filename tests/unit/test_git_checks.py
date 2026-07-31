@@ -4,7 +4,7 @@ import shutil
 import unittest
 
 import support
-from core import git_checks
+from core import git_checks, project_files
 
 
 class GitInspectionTests(unittest.TestCase):
@@ -74,14 +74,63 @@ class FingerprintTests(unittest.TestCase):
         self.assertNotEqual(before, after)
 
     def test_finalization_files_excluded(self):
-        (self.repo / "TASK_PLAN.md").write_text("plan v1\n", encoding="utf-8")
-        support.run_git(self.repo, "add", "TASK_PLAN.md")
+        support.write_repo_file(self.repo, project_files.TASK_PLAN, "plan v1\n")
+        support.run_git(self.repo, "add", "--", project_files.TASK_PLAN)
         support.run_git(self.repo, "commit", "-q", "-m", "add plan")
         before = git_checks.implementation_fingerprint(self.repo)
-        (self.repo / "TASK_PLAN.md").write_text("plan v2 (finalized)\n", encoding="utf-8")
-        (self.repo / "FEATURE_CHANGELOG.md").write_text("# Feature Changelog\n", encoding="utf-8")
+        support.write_repo_file(
+            self.repo, project_files.TASK_PLAN, "plan v2 (finalized)\n"
+        )
+        support.write_repo_file(
+            self.repo, project_files.FEATURE_CHANGELOG, "# Feature Changelog\n"
+        )
         after = git_checks.implementation_fingerprint(self.repo)
         self.assertEqual(before, after)
+
+    def test_tracked_ai_context_changes_excluded(self):
+        """Shared workflow files are tracked, but never part of the fingerprint."""
+        for relative in (
+            project_files.WORKFLOW_STATE,
+            project_files.IMPLEMENTATION_SUMMARY,
+            project_files.TESTING_TASK_AR,
+            f"{project_files.REVIEWS_DIR}/round-001-result.md",
+        ):
+            support.write_repo_file(self.repo, relative, "original\n")
+        support.run_git(self.repo, "add", "--", project_files.AI_CONTEXT_DIR)
+        support.run_git(self.repo, "commit", "-q", "-m", "add ai context")
+
+        before = git_checks.implementation_fingerprint(self.repo)
+        for relative in (
+            project_files.WORKFLOW_STATE,
+            project_files.IMPLEMENTATION_SUMMARY,
+            project_files.TESTING_TASK_AR,
+            f"{project_files.REVIEWS_DIR}/round-001-result.md",
+        ):
+            support.write_repo_file(self.repo, relative, "changed\n")
+        self.assertEqual(before, git_checks.implementation_fingerprint(self.repo))
+
+    def test_untracked_files_in_excluded_dirs_ignored(self):
+        before = git_checks.implementation_fingerprint(self.repo)
+        support.write_repo_file(
+            self.repo, f"{project_files.REVIEWS_DIR}/round-002-prompt.md", "new\n"
+        )
+        support.write_repo_file(self.repo, project_files.WORKFLOW_STATE, "{}\n")
+        support.write_repo_file(self.repo, project_files.DEPLOYMENT_CONFIG, "{}\n")
+        support.write_repo_file(self.repo, project_files.WORKFLOW_LOCK, "")
+        self.assertEqual(before, git_checks.implementation_fingerprint(self.repo))
+
+    def test_untracked_application_file_still_counts(self):
+        before = git_checks.implementation_fingerprint(self.repo)
+        support.write_repo_file(self.repo, "app/module.py", "X = 1\n")
+        self.assertNotEqual(before, git_checks.implementation_fingerprint(self.repo))
+
+    def test_application_code_change_changes_fingerprint(self):
+        support.write_repo_file(self.repo, "app/service.py", "VALUE = 1\n")
+        support.run_git(self.repo, "add", "--", "app/service.py")
+        support.run_git(self.repo, "commit", "-q", "-m", "add service")
+        before = git_checks.implementation_fingerprint(self.repo)
+        support.write_repo_file(self.repo, "app/service.py", "VALUE = 2\n")
+        self.assertNotEqual(before, git_checks.implementation_fingerprint(self.repo))
 
     def test_hex_sha256_format(self):
         fingerprint = git_checks.implementation_fingerprint(self.repo)

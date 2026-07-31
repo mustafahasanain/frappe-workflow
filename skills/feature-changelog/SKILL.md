@@ -6,16 +6,19 @@ user-invocable: false
 
 # Feature Changelog Skill
 
-Owns `FEATURE_CHANGELOG.md`: a registry of product behavior used to decide
+Owns `docs/ai-context/FEATURE_CHANGELOG.md`: a registry of product
+behavior used to decide
 whether requested work already exists, extends something, or is new. It
 records meaningful business logic only — never commits, renames,
 formatting, or refactors without behavior change. The whole file is English.
 
 ## When to Use
 
-- `init` with no `FEATURE_CHANGELOG.md` → baseline discovery
+- `init` with no `docs/ai-context/FEATURE_CHANGELOG.md` → baseline
+  discovery
   ([references/baseline-analysis.md](references/baseline-analysis.md)).
-- Before any `TASK_PLAN.md` is created or accepted → feature search
+- Before any `docs/ai-context/TASK_PLAN.md` is created or accepted →
+  feature search
   ([references/feature-detection.md](references/feature-detection.md)).
 - New IDs → [references/feature-id-rules.md](references/feature-id-rules.md).
 - After a valid Codex `APPROVED`, during finalization → registry update.
@@ -23,8 +26,9 @@ formatting, or refactors without behavior change. The whole file is English.
 
 ## Inputs
 
-- `FEATURE_CHANGELOG.md` (or its absence), the task description/plan,
-  `PROJECT_CONTEXT.md`, the repository itself.
+- `docs/ai-context/FEATURE_CHANGELOG.md` (or its absence), the task
+  description/plan, `docs/ai-context/PROJECT_CONTEXT.md`, the repository
+  itself.
 - Deterministic helpers: `bin/frappe-workflow feature search <query>`,
   `feature next-id --type <type> --module <module>`,
   `feature validate-index`.
@@ -35,7 +39,8 @@ formatting, or refactors without behavior change. The whole file is English.
   new — always confirmed by inspecting actual files, never by text
   similarity alone.
 - Registry entries following the template format in
-  `templates/project/FEATURE_CHANGELOG.md` (Index row + detailed entry
+  `templates/project/FEATURE_CHANGELOG.md` in the plugin (Index row +
+  detailed entry
   grouped by module).
 
 ## Preconditions

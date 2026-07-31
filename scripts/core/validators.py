@@ -284,7 +284,8 @@ def validate_completion_gate(repo_root: Path) -> list[str]:
     summary_path = repo_root / project_files.IMPLEMENTATION_SUMMARY
     if not summary_path.is_file():
         errors.append(
-            "completion gate: .claude/implementation-summary.md missing [GATE_NO_SUMMARY]"
+            f"completion gate: {project_files.IMPLEMENTATION_SUMMARY} missing "
+            "[GATE_NO_SUMMARY]"
         )
 
     # Security scan over changed + staged + untracked files.
@@ -366,7 +367,9 @@ def validate_finalization_gate(repo_root: Path) -> list[str]:
 
     plan_path = repo_root / project_files.TASK_PLAN
     if not plan_path.is_file():
-        errors.append("finalization gate: TASK_PLAN.md missing [FINAL_NO_PLAN]")
+        errors.append(
+            f"finalization gate: {project_files.TASK_PLAN} missing [FINAL_NO_PLAN]"
+        )
     else:
         # A present-but-malformed plan must not reach a commit: validate its
         # structure before trusting any field inside it.
@@ -383,7 +386,7 @@ def validate_finalization_gate(repo_root: Path) -> list[str]:
             pass
         elif frontmatter.get("status") not in FINALIZATION_PLAN_STATUSES:
             errors.append(
-                f"finalization gate: TASK_PLAN.md status is "
+                f"finalization gate: {project_files.TASK_PLAN} status is "
                 f"{frontmatter.get('status')!r}, expected 'codex_approved' or "
                 "'committed' [FINAL_PLAN_STATUS]"
             )

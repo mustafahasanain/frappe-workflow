@@ -50,8 +50,12 @@ and the commit has not been pushed.
 - Generate one `git add -- <path>` per task-related file (paths may be
   grouped in a single command, but every path is explicit).
 - **Never** `git add .`, `git add -A`, or `git add --all` by default.
-- Never stage: `.claude/` local state, `deployment.local.json`, credentials,
-  `.env` files, or anything unrelated to the approved task.
+- Never stage: `.claude/deployment.local.json`,
+  `.claude/task-workflow.lock`, credentials, `.env` files, or anything
+  unrelated to the approved task.
+- **Do** stage the shared AI-context files the task touched — they live
+  under `docs/ai-context/` and are tracked on purpose, so an unfinished
+  task can continue on another computer.
 - List intentionally excluded files so the user can see what was left out.
 - If unrelated files are **already staged**, stop and report them; do not
   commit around them and do not unstage them silently.

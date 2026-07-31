@@ -18,14 +18,16 @@ everything; **executes the commit only when the user explicitly asks**.
 
 ## Inputs
 
-- Approved state (fingerprint recorded), `TASK_PLAN.md`, the actual diff,
+- Approved state (fingerprint recorded), `docs/ai-context/TASK_PLAN.md`,
+  the actual diff,
   `bin/frappe-workflow git inspect` / `changed-files`.
 
 ## Outputs
 
-- Finalized docs: `FEATURE_CHANGELOG.md` updated (feature-changelog
-  skill), `PROJECT_CONTEXT.md` when architecture changed (project-context
-  skill), `TASK_PLAN.md` status `codex_approved` + review record.
+- Finalized docs: `docs/ai-context/FEATURE_CHANGELOG.md` updated
+  (feature-changelog skill), `docs/ai-context/PROJECT_CONTEXT.md` when
+  architecture changed (project-context skill),
+  `docs/ai-context/TASK_PLAN.md` status `codex_approved` + review record.
 - A prepared commit: Conventional Commit subject (+ optional body), exact
   `git add -- <path>` commands, excluded-files list.
 - After user-requested execution: verified commit, hash/subject recorded,
@@ -53,8 +55,8 @@ Staging: [references/task-file-staging.md](references/task-file-staging.md).
 
 ## Prohibited
 
-- `git add .` / `-A` in any form; staging `.claude/` state, deployment
-  config, or unrelated files.
+- `git add .` / `-A` in any form; staging `.claude/` machine-local state
+  (`deployment.local.json`, `task-workflow.lock`) or unrelated files.
 - Executing the commit without an explicit user request this session.
 - `--amend` (unless the user explicitly asks and nothing was pushed),
   force-push, AI attribution (`Co-Authored-By`, `Claude`, `Codex`,

@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional
 
+from . import project_files
+
 # Obviously-fake markers used by test fixtures; matches containing one of
 # these are reported at "info" level instead of blocking.
 FAKE_MARKERS = ("example", "dummy", "fake", "sample", "your-", "changeme", "xxxx", "test-token")
@@ -68,10 +70,12 @@ PATTERNS: tuple[tuple[str, re.Pattern], ...] = (
     ),
 )
 
-# Files that must never be staged or bundled regardless of content.
+# Files that must never be staged or bundled regardless of content. The
+# deployment configuration is machine-local by design, so seeing it in a
+# staged or bundled set is always a mistake.
 FORBIDDEN_PATHS = (
     re.compile(r"(^|/)\.env(\..+)?$"),
-    re.compile(r"(^|/)\.claude/deployment\.local\.json$"),
+    re.compile(r"(^|/)" + re.escape(project_files.DEPLOYMENT_CONFIG) + r"$"),
     re.compile(r"(^|/)id_(rsa|ed25519|ecdsa|dsa)(\.pub)?$"),
 )
 

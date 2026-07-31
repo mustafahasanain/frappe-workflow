@@ -1,11 +1,13 @@
 # Baseline Analysis
 
-When an existing application has no `FEATURE_CHANGELOG.md`, discover the
+When an existing application has no `docs/ai-context/FEATURE_CHANGELOG.md`,
+discover the
 already-shipped features once, honestly, with confidence labels.
 
 ## Sources (in order of reliability)
 
-1. `PROJECT_CONTEXT.md` (generate it first — init runs project-context
+1. `docs/ai-context/PROJECT_CONTEXT.md` (generate it first — init runs
+   project-context
    before this skill).
 2. Existing DocTypes with real controller logic.
 3. `hooks.py` (doc_events, overrides, scheduler_events).

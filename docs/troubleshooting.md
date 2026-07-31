@@ -142,7 +142,8 @@ Install it with bench (`bench get-app` / `bench install-app`) so
 
 When the app is installed on more than one Site, the plugin lists them and
 asks you to choose; the choice is stored in task state (`target_site`), not
-in `PROJECT_CONTEXT.md`, because an app is not permanently bound to a Site.
+in `docs/ai-context/PROJECT_CONTEXT.md`, because an app is not permanently
+bound to a Site.
 
 When installation status shows `unknown`, the `bench` executable was not
 available or `bench --site <site> list-apps` failed. Run it manually to see
@@ -154,6 +155,53 @@ cd ~/frappe-bench && bench --site all list-apps
 
 When the app is installed on **no** Site, the plugin explains the options
 and stops. It will never create a Site or install an app for you.
+
+## Workflow files are still at the old locations
+
+An application initialized by an earlier version keeps `PROJECT_CONTEXT.md`,
+`FEATURE_CHANGELOG.md`, and `TASK_PLAN.md` at its repository root and the
+workflow files under `.claude/`. `init` migrates it; you can also do it
+directly:
+
+```bash
+bin/frappe-workflow project migrate --dry-run
+bin/frappe-workflow project migrate
+```
+
+Contents and the full review history are preserved,
+`.claude/deployment.local.json` is never touched, and a repeat run does
+nothing.
+
+```text
+error: both TASK_PLAN.md and docs/ai-context/TASK_PLAN.md exist; move or
+remove one of them manually [MIGRATE_CONFLICT]
+```
+
+The command found the same file in both layouts and refuses to guess which
+copy is current — **nothing is moved at all**, not even the paths that had
+no conflict. Compare the two files, delete or rename the stale one, and
+rerun.
+
+## An active task will not resume on my other computer
+
+The shared files are Git-*trackable*, not Git-*synchronized*. Nothing moves
+between computers on its own:
+
+1. On the first computer: `git add -- docs/ai-context/`, commit (a
+   work-in-progress checkpoint commit is fine), and push the working
+   branch.
+2. On the second computer: pull or check out that branch.
+3. Run `/frappe-workflow:frappe-task` with no action.
+
+If `docs/ai-context/task-workflow.json` is missing on the second computer,
+it was never committed or you are on a different branch — check
+`git status` and `git branch --show-current` on both. If it appears in
+`git status --ignored` as ignored, your `.gitignore` still carries entries
+from an older version; run `bin/frappe-workflow project ensure-gitignore`
+to repair the managed block.
+
+`.claude/deployment.local.json` is deliberately per-computer: create it
+separately on each machine from the example template.
 
 ## Invalid workflow state
 
@@ -195,8 +243,9 @@ changed after the prompt was generated. This is working as intended:
 bin/frappe-workflow state transition review_fixes --reason "approval invalidated"
 ```
 
-then rerun `review` for a new round. Editing `TASK_PLAN.md`,
-`FEATURE_CHANGELOG.md`, or `PROJECT_CONTEXT.md` does **not** cause this —
+then rerun `review` for a new round. Editing anything under
+`docs/ai-context/` — the plan, the feature changelog, the project context,
+the workflow state, the summary, the reviews — does **not** cause this —
 those three are excluded from the fingerprint. If you see a mismatch and
 believe you only touched documentation, check what actually changed:
 
@@ -219,7 +268,7 @@ Only two statuses are recognized, on their own line:
 rather than interpreted. Test a result file directly:
 
 ```bash
-bin/frappe-workflow review parse-result .claude/reviews/round-001-result.md
+bin/frappe-workflow review parse-result docs/ai-context/reviews/round-001-result.md
 ```
 
 ## Dirty server repository

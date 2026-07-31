@@ -58,10 +58,13 @@ def _read_or_note(path: Path, missing_note: str) -> str:
 def build_prompt(repo_root: Path, round_number: int, fingerprint: str) -> str:
     """Assemble the review prompt Markdown (spec §21). Read-only."""
     repo_root = Path(repo_root)
-    plan = _read_or_note(repo_root / project_files.TASK_PLAN, "TASK_PLAN.md missing")
+    plan = _read_or_note(
+        repo_root / project_files.TASK_PLAN,
+        f"{project_files.TASK_PLAN} missing",
+    )
     summary = _read_or_note(
         repo_root / project_files.IMPLEMENTATION_SUMMARY,
-        ".claude/implementation-summary.md missing",
+        f"{project_files.IMPLEMENTATION_SUMMARY} missing",
     )
     inspect = git_checks.inspect(repo_root)
     diff = git_checks._git(repo_root, "diff", "HEAD") if inspect["head"] else ""

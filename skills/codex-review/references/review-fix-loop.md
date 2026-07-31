@@ -26,7 +26,7 @@ with file/line evidence. Codex sees this in the next round's bundle.
 
 ## 4. Update the Summary
 
-Refresh `.claude/implementation-summary.md`: new test results, any new
+Refresh `docs/ai-context/implementation-summary.md`: new test results, any new
 deviations, the round-response notes.
 
 ## 5. Next Round

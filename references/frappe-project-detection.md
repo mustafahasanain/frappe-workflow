@@ -45,7 +45,8 @@ Target Site = Frappe Site used for migrate, testing, and development
 One bench can host many apps and many Sites; one app may be installed on
 zero, one, or many Sites. Never permanently bind an app to a Site — the
 selected Site lives in task-level state (`target_site` in
-`.claude/task-workflow.json`), not in `PROJECT_CONTEXT.md`.
+`docs/ai-context/task-workflow.json`), not in
+`docs/ai-context/PROJECT_CONTEXT.md`.
 
 ## Site Detection
 

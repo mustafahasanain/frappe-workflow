@@ -5,7 +5,7 @@ import shutil
 import unittest
 
 import support
-from core import deployment
+from core import deployment, project_files
 
 
 def valid_config():
@@ -236,10 +236,10 @@ class ConfigLoadingTests(unittest.TestCase):
         self.assertIn("DEPLOY_NO_CONFIG", str(ctx.exception))
 
     def test_load_valid_config(self):
-        path = self.repo / ".claude" / "deployment.local.json"
-        path.parent.mkdir(parents=True)
-        path.write_text(
-            json.dumps({"demo_server": valid_config()}), encoding="utf-8"
+        support.write_repo_file(
+            self.repo,
+            project_files.DEPLOYMENT_CONFIG,
+            json.dumps({"demo_server": valid_config()}),
         )
         config = deployment.load_config(self.repo)
         self.assertEqual(config["host"], "a1-demo")

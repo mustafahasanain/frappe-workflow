@@ -21,7 +21,7 @@ Recognized actions: `init`, `start`, `status`, `review`, `apply-review`,
 `commit`, `deploy`, `testing`, `reset`, `help`.
 
 - **No arguments** → resume the active task from its persisted workflow
-  stage, recorded in `.claude/task-workflow.json`. This is how work
+  stage, recorded in `docs/ai-context/task-workflow.json`. This is how work
   continues after Claude Code is closed and reopened.
 - **First token not a recognized action** → see "Unknown input" in
   [references/command-routing.md](references/command-routing.md).
@@ -33,9 +33,15 @@ Recognized actions: `init`, `start`, `status`, `review`, `apply-review`,
 - All deterministic facts come from the helper CLI at
   `${CLAUDE_PLUGIN_ROOT}/bin/frappe-workflow` (detection, state, gates,
   fingerprints, IDs, scans). Never guess what it can compute.
-- The workflow state file `.claude/task-workflow.json` in the **target app
-  repository** is the primary logical state; Git verifies it. Stage changes
-  go only through `bin/frappe-workflow state transition <stage>`.
+- The workflow state file `docs/ai-context/task-workflow.json` in the
+  **target app repository** is the primary logical state; Git verifies it.
+  Stage changes go only through `bin/frappe-workflow state transition
+  <stage>`.
+- Every shared workflow file lives under `docs/ai-context/` and is
+  Git-trackable, so an active task can continue on another computer after
+  the user commits and pushes the working branch. Only
+  `.claude/deployment.local.json` and `.claude/task-workflow.lock` stay
+  machine-local. Never commit, push, or pull automatically.
 - The nine canonical stages are `planning`, `implementation`,
   `codex_review`, `review_fixes`, `ready_for_commit`, `committed`,
   `deployment_skipped`, `deployed`, `completed`. Never name a stage that is
@@ -58,8 +64,8 @@ description here becomes a wrong answer to the user.
 | Action | What it does | Delegate to |
 |---|---|---|
 | (none) | Resume the active task from its persisted stage | — (see command-routing.md §No Action) |
-| `init` | Initialize the application: detect bench/app/Sites, generate or validate `PROJECT_CONTEXT.md` and `FEATURE_CHANGELOG.md`, prepare local workflow storage. **Never starts a task.** | project-context + feature-changelog skills |
-| `start` | Accept a prepared plan or a task description; produce a validated, repository-aware `TASK_PLAN.md` | task-planning skill |
+| `init` | Initialize the application: detect bench/app/Sites, generate or validate `docs/ai-context/PROJECT_CONTEXT.md` and `docs/ai-context/FEATURE_CHANGELOG.md`, migrate a legacy layout, and prepare shared workflow storage. **Never starts a task.** | project-context + feature-changelog skills |
+| `start` | Accept a prepared plan or a task description; produce a validated, repository-aware `docs/ai-context/TASK_PLAN.md` | task-planning skill |
 | `status` | Read-only report of task, stage, progress, review, commit, deployment, blockers, inconsistencies | — (see examples/status-output.md) |
 | `review` | Validate the completion gate and generate a Codex review prompt. **Codex is never run automatically.** | codex-review skill |
 | `apply-review` | Process an `APPROVED` or `CHANGES_REQUIRED` result, record the review round, route to `review_fixes` or `ready_for_commit` | codex-review skill |

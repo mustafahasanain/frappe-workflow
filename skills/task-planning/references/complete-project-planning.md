@@ -1,6 +1,7 @@
 # Complete Project Planning (`task_type: project`)
 
-A complete-project task uses the same `TASK_PLAN.md` skeleton with these
+A complete-project task uses the same `docs/ai-context/TASK_PLAN.md`
+skeleton with these
 additional required subsections (add them under the listed parent
 sections):
 

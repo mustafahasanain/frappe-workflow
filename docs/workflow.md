@@ -1,14 +1,15 @@
 # Workflow
 
 A task moves through nine stages. The persisted `current_stage` in
-`.claude/task-workflow.json` is the authoritative logical state; Git is
+`docs/ai-context/task-workflow.json` is the authoritative logical state; Git is
 used to check that the recorded state is still truthful, because Git alone
 cannot tell you whether a plan was approved, whether a review passed, or
 whether deployment was deliberately skipped.
 
 ## The Stages
 
-1. **planning** — `TASK_PLAN.md` is being created and validated. No code
+1. **planning** — `docs/ai-context/TASK_PLAN.md` is being created and
+   validated. No code
    is written here.
 2. **implementation** — plan steps are executed one at a time, each
    validated before it is marked `Completed`.
@@ -95,8 +96,9 @@ files is clean.
 
 Attested checks written into the summary: every validation actually ran and
 the tests really passed, the diff contains only task-related changes, no
-debug code or temporary files remain, `PROJECT_CONTEXT.md` was updated if
-architecture changed, and `FEATURE_CHANGELOG.md` has **not** been updated
+debug code or temporary files remain, `docs/ai-context/PROJECT_CONTEXT.md`
+was updated if architecture changed, and
+`docs/ai-context/FEATURE_CHANGELOG.md` has **not** been updated
 yet. A skipped required step fails the gate.
 
 ### Approval gate (inside apply-review)
@@ -108,7 +110,8 @@ equals the one recorded when the prompt was generated.
 ### Finalization gate (before commit preparation)
 
 `validate finalization-gate` checks that the approval is recorded, the
-fingerprint still matches, `TASK_PLAN.md` says `codex_approved`, and the
+fingerprint still matches, `docs/ai-context/TASK_PLAN.md` says
+`codex_approved`, and the
 secret scan is clean. On top of that, the diff is checked for unrelated
 changes and for unrelated files someone already staged.
 
@@ -120,17 +123,22 @@ staged diff, and the sorted names and contents of untracked non-ignored
 files. It contains no timestamps, so an unchanged tree always produces the
 same value and any content change produces a different one.
 
-Two categories are excluded by construction: the `.claude/` directory (so
-workflow state and review files never invalidate anything) and the three
-categorized finalization files — `TASK_PLAN.md`, `FEATURE_CHANGELOG.md`,
-and `PROJECT_CONTEXT.md`. That exclusion is what lets documentation
-finalization happen after approval without triggering another review, while
-any edit to an actual implementation file immediately invalidates the
-approval and sends the workflow back to `review_fixes`.
+Two directories are excluded by construction: `docs/ai-context/` (so the
+plan, the workflow state, the implementation summary, the review history,
+the testing note, and the AI documentation never invalidate an approval)
+and `.claude/` (machine-local state). Excluding them from the fingerprint
+does not exclude them from secret scanning: the shared files are still
+scanned before staging and completion.
+
+That exclusion is what lets documentation finalization and state writes
+happen after approval without triggering another review, while any edit to
+an actual implementation file — tracked or untracked, anywhere outside
+those two directories — immediately invalidates the approval and sends the
+workflow back to `review_fixes`.
 
 ## The Review Loop
 
-The prompt for round N lands at `.claude/reviews/round-NNN-prompt.md` and
+The prompt for round N lands at `docs/ai-context/reviews/round-NNN-prompt.md` and
 contains the full plan, the implementation summary, Git status, the diffs,
 the fingerprint, and an explicit instruction that Codex reviews only and
 must not modify files. You run it through Codex yourself and bring the
@@ -167,7 +175,7 @@ recovery to a human.
 ## Closing the Task
 
 The testing action generates a short Arabic title and description from the
-approved behavior, saves a copy to `.claude/testing-task-ar.md`, and moves
+approved behavior, saves a copy to `docs/ai-context/testing-task-ar.md`, and moves
 the workflow to `completed`. When deployment was skipped, a separate
 English warning is shown — outside the Arabic text — telling you to publish
 the testing task only once the changes reach the testing environment.

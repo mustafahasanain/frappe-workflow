@@ -23,14 +23,15 @@ reviews only — it never modifies files; the bundle says so explicitly.
 
 ## Inputs
 
-- Passing completion gate; `TASK_PLAN.md`; implementation summary; Git
+- Passing completion gate; `docs/ai-context/TASK_PLAN.md`; the
+  implementation summary at `docs/ai-context/implementation-summary.md`; Git
   state; for `apply-review`, the raw Codex result text or file.
 
 ## Outputs
 
-- `.claude/reviews/round-NNN-prompt.md` (via `bin/frappe-workflow review
+- `docs/ai-context/reviews/round-NNN-prompt.md` (via `bin/frappe-workflow review
   bundle`, which secret-scans and embeds the fingerprint).
-- `.claude/reviews/round-NNN-result.md` — the original result, preserved
+- `docs/ai-context/reviews/round-NNN-result.md` — the original result, preserved
   verbatim.
 - State updates: round, prompt/result paths, fingerprint, status
   (pending → changes_required → … → approved), approved_at.

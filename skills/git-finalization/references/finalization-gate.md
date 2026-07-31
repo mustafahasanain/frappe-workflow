@@ -4,13 +4,15 @@ Runs after approval, before commit preparation, in this order:
 
 ## 1. Documentation Finalization (this is the correct — and only — time)
 
-1. `FEATURE_CHANGELOG.md`: apply the feature-changelog skill's update
+1. `docs/ai-context/FEATURE_CHANGELOG.md`: apply the feature-changelog
+   skill's update
    rules (new entry / extension / bugfix history / replacement), then
    `bin/frappe-workflow feature validate-index`.
-2. `PROJECT_CONTEXT.md`: only when the update-decision question says yes
+2. `docs/ai-context/PROJECT_CONTEXT.md`: only when the update-decision
+   question says yes
    (project-context skill); bump `analyzed_commit` will happen naturally on
    the next incremental run after commit.
-3. `TASK_PLAN.md`: set frontmatter `status: codex_approved`,
+3. `docs/ai-context/TASK_PLAN.md`: set frontmatter `status: codex_approved`,
    `updated_at`, and append the review record:
 
 ```markdown
@@ -37,7 +39,8 @@ checks, accumulating every failure in one run:
   `FINAL_NO_FINGERPRINT`];
 - current fingerprint match [`FINAL_FINGERPRINT_MISMATCH`] (the fingerprint
   excludes the three finalization files, so step 1's edits do not trip it);
-- `TASK_PLAN.md` present [`FINAL_NO_PLAN`] and structurally valid — the
+- `docs/ai-context/TASK_PLAN.md` present [`FINAL_NO_PLAN`] and
+  structurally valid — the
   whole `validate task-plan` ruleset [`FINAL_PLAN_INVALID`];
 - plan status [`FINAL_PLAN_STATUS`];
 - secret scan [`FINAL_SECRET`].
@@ -75,6 +78,6 @@ bin/frappe-workflow state set commit.subject "<subject line>"
 bin/frappe-workflow state transition committed --reason "commit <short hash>"
 ```
 
-   Also set `TASK_PLAN.md` frontmatter `status: committed`.
+   Also set `docs/ai-context/TASK_PLAN.md` frontmatter `status: committed`.
 4. Any verification failure → report exactly what differs; do not retry
    automatically and do not amend.

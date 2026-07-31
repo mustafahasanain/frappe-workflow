@@ -1,6 +1,6 @@
 # Feature Detection Before Planning
 
-Run **before** creating or accepting any `TASK_PLAN.md`.
+Run **before** creating or accepting any `docs/ai-context/TASK_PLAN.md`.
 
 ## Procedure
 

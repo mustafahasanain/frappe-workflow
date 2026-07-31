@@ -7,7 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- **Shared AI context moved to `docs/ai-context/`** — `PROJECT_CONTEXT.md`,
+  `FEATURE_CHANGELOG.md`, `TASK_PLAN.md`, `task-workflow.json`,
+  `implementation-summary.md`, `testing-task-ar.md`, and `reviews/` now all
+  live under `docs/ai-context/` in the target application, keeping its root
+  clean and making every one of them Git-trackable. An active task can
+  continue on another computer once the working branch is committed and
+  pushed; the plugin still never commits, pushes, or pulls on its own.
+- **Only machine-local state stays under `.claude/`** —
+  `deployment.local.json` (unchanged, still user-created and never staged)
+  and the new `task-workflow.lock`, which replaces the temporary lock file
+  that used to sit next to the state. The managed `.gitignore` block now
+  contains exactly those two entries; repairing it removes the old shared
+  entries, and nothing under `docs/ai-context/` is ever ignored.
+- **Implementation fingerprint excludes `docs/ai-context/` and `.claude/`**
+  — it represents application implementation changes only, so plans,
+  workflow state, summaries, reviews, testing notes, and AI documentation
+  cannot invalidate a valid Codex approval. Those shared files are still
+  secret-scanned before staging and completion.
+- **Every managed path comes from one place** —
+  `scripts/core/project_files.py` is the single source of truth; CLI
+  output, validators, gates, staging commands, skills, and docs report the
+  new locations.
+
+### Added
+
+- **`frappe-workflow project` commands** — `paths` (every managed location
+  as JSON), `ensure-gitignore` (idempotent managed block), and
+  `migrate [--dry-run]` (move an old-layout application onto
+  `docs/ai-context/`). `init` runs the latter two.
+- **Legacy-layout migration** — moves each old path to its new one,
+  preserving contents and the full review history, removing stale managed
+  `.gitignore` entries, never touching `.claude/deployment.local.json`, and
+  doing nothing on a repeat run. A path present in both layouts aborts the
+  whole migration with `MIGRATE_CONFLICT` rather than guessing.
 
 ## [0.1.0] — 2026-07-27
 

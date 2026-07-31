@@ -8,7 +8,7 @@ repository (or with `--repo <app_git_root>`).
 
 1. `CLI detect --json` — detect bench/app; abort with the error if detection
    fails (exit 3).
-2. If `.claude/task-workflow.json` does not exist: tell the user to run
+2. If `docs/ai-context/task-workflow.json` does not exist: tell the user to run
    `/frappe-workflow:frappe-task init`. Stop. Do not create a task.
 3. `CLI validate workflow-state` — abort on invalid state and report it.
 4. Cross-check state vs Git: recorded branch vs actual, recorded commit
@@ -35,17 +35,25 @@ Order matters; stop on the first hard failure.
    root), list apps and ask the user to `cd` into one.
 2. Report Sites (installed / not installed / unknown). Do **not** force a
    Site choice at init; the choice is task-level and happens at `start`.
-3. If `PROJECT_CONTEXT.md` missing → project-context skill (first-time
-   analysis). Else → its incremental-analysis reference.
-4. If `FEATURE_CHANGELOG.md` missing → feature-changelog skill (baseline
-   discovery).
-5. Ensure `.claude/` and `.claude/reviews/` exist in the app repo.
-6. Update `.gitignore` managed block (idempotent — see
-   `references/file-lifecycle.md`). Report `conflict` outcomes.
-7. `CLI validate project-context` and `CLI validate feature-changelog`.
-8. Report an initialization summary (what was created, updated, unchanged).
+3. `CLI project migrate` — move an old-layout application onto
+   `docs/ai-context/`. Nothing to move is the normal case and reports
+   "already current". A `MIGRATE_CONFLICT` (exit 1) means a path exists in
+   both layouts: report it and stop; never guess which copy is current.
+4. If `docs/ai-context/PROJECT_CONTEXT.md` missing → project-context skill
+   (first-time analysis). Else → its incremental-analysis reference.
+5. If `docs/ai-context/FEATURE_CHANGELOG.md` missing → feature-changelog
+   skill (baseline discovery).
+6. Ensure `docs/ai-context/` and `docs/ai-context/reviews/` exist in the
+   app repo.
+7. `CLI project ensure-gitignore` — idempotent managed block (see
+   `../../../references/file-lifecycle.md`). Report `conflict` outcomes.
+8. `CLI validate project-context` and `CLI validate feature-changelog`.
+9. Report an initialization summary (what was created, updated, unchanged,
+   migrated).
 
-Never: start a task, modify app behavior, commit, deploy.
+Never: start a task, create `docs/ai-context/TASK_PLAN.md`, create
+`docs/ai-context/task-workflow.json`, create the old root-level files,
+modify app behavior, commit, deploy.
 
 ## `start <plan or description>`
 
@@ -55,7 +63,8 @@ Never: start a task, modify app behavior, commit, deploy.
    `completed`, report the active task + stage and require an explicit
    decision (finish it, or `reset`). Never silently replace.
 3. Delegate to the task-planning skill with the raw input (ready plan or
-   plain description). It produces a validated `TASK_PLAN.md`.
+   plain description). It produces a validated
+   `docs/ai-context/TASK_PLAN.md`.
 4. Site selection: exactly one installed Site → auto-select; several →
    ask; none → explain options and stop (see
    `references/frappe-project-detection.md`).
@@ -72,7 +81,7 @@ Never: start a task, modify app behavior, commit, deploy.
 
 Read-only. Never modifies anything. Gather:
 `CLI detect --json`, `CLI state show`, `CLI git inspect`, and plan step
-counts from `TASK_PLAN.md`. Render as in
+counts from `docs/ai-context/TASK_PLAN.md`. Render as in
 [../examples/status-output.md](../examples/status-output.md), including
 state/repository inconsistencies and blockers.
 
@@ -80,7 +89,7 @@ state/repository inconsistencies and blockers.
 
 1. `CLI validate completion-gate`. On failure: report every error; stay in
    `implementation`. Do not generate a prompt.
-2. `CLI review bundle` — creates `.claude/reviews/round-NNN-prompt.md` and
+2. `CLI review bundle` — creates `docs/ai-context/reviews/round-NNN-prompt.md` and
    records the fingerprint (a blocking secret aborts with exit 7).
 3. Record the round, prompt path, and fingerprint with `CLI state set`
    (see the codex-review skill's review-prompt-generation reference).
@@ -94,7 +103,7 @@ Input: pasted review text, a file path, or text in the arguments.
 Delegate to the codex-review skill:
 
 - Parse with `CLI review parse-result <file>` (write pasted text to
-  `.claude/reviews/round-NNN-result.md` first — the round currently in
+  `docs/ai-context/reviews/round-NNN-result.md` first — the round currently in
   state). Malformed output → reject, explain the required format, stay in
   `codex_review`.
 - `CHANGES_REQUIRED` → save result, record round,
@@ -140,17 +149,20 @@ deployment skill
 
 Requires stage `deployed` or `deployment_skipped`. Delegate to the
 testing-task skill: Arabic title + description from approved behavior,
-saved to `.claude/testing-task-ar.md`, then
+saved to `docs/ai-context/testing-task-ar.md`, then
 `state transition completed`. When deployment was skipped, show the
 English skip warning separately (never inside the Arabic text).
 
 ## `reset`
 
-1. Show exactly what will be cleared: `.claude/task-workflow.json`,
-   `TASK_PLAN.md` active-task content, `.claude/implementation-summary.md`,
-   `.claude/reviews/`, `.claude/testing-task-ar.md`.
+1. Show exactly what will be cleared:
+   `docs/ai-context/task-workflow.json`, `docs/ai-context/TASK_PLAN.md`,
+   `docs/ai-context/implementation-summary.md`,
+   `docs/ai-context/testing-task-ar.md`, `docs/ai-context/reviews/`.
+   `CLI project paths` prints this list as `reset_paths`.
 2. State what is **never** touched: Git changes, commits, app files,
-   `PROJECT_CONTEXT.md`, `FEATURE_CHANGELOG.md`,
+   `docs/ai-context/PROJECT_CONTEXT.md`,
+   `docs/ai-context/FEATURE_CHANGELOG.md`,
    `.claude/deployment.local.json`, repository history.
 3. Require explicit confirmation.
 4. On confirmation: `CLI state init --force` and remove only the listed

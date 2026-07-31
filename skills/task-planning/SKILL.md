@@ -6,8 +6,9 @@ user-invocable: false
 
 # Task Planning Skill
 
-Produces exactly one active `TASK_PLAN.md` (template:
-`templates/task/TASK_PLAN.md`) from either a prepared plan or a plain
+Produces exactly one active `docs/ai-context/TASK_PLAN.md` (template:
+`templates/task/TASK_PLAN.md` in the plugin) from either a prepared plan or
+a plain
 description. The plan is repository-aware: every stated path and fact is
 verified or explicitly marked for verification.
 
@@ -19,13 +20,15 @@ verified or explicitly marked for verification.
 ## Inputs
 
 - Raw user input (ready plan or description).
-- `PROJECT_CONTEXT.md`, `FEATURE_CHANGELOG.md` (searched via the
+- `docs/ai-context/PROJECT_CONTEXT.md`,
+  `docs/ai-context/FEATURE_CHANGELOG.md` (searched via the
   feature-changelog skill **before** writing the plan).
 - Detection facts (`bin/frappe-workflow detect --json`), current Git state.
 
 ## Outputs
 
-- `TASK_PLAN.md` passing `bin/frappe-workflow validate task-plan`
+- `docs/ai-context/TASK_PLAN.md` passing
+  `bin/frappe-workflow validate task-plan`
   ([references/plan-validation.md](references/plan-validation.md)).
 - Frontmatter filled: deterministic `task_id` (TASK-YYYY-NNN — next number
   from prior plans/Git history, never reusing a found ID; start at 001

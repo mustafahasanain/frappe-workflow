@@ -1,6 +1,7 @@
 # Incremental Analysis
 
-Performed when `PROJECT_CONTEXT.md` exists. Never reread the whole
+Performed when `docs/ai-context/PROJECT_CONTEXT.md` exists. Never reread
+the whole
 repository unless the old context is missing, invalid, or clearly obsolete.
 
 ## Procedure

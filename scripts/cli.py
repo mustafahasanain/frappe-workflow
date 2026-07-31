@@ -353,6 +353,63 @@ def cmd_deployment(args) -> int:
     return exit_codes.INVALID_USAGE
 
 
+def cmd_project(args) -> int:
+    repo = _repo_root(args)
+
+    if args.project_command == "paths":
+        _out(
+            {
+                "ai_context_dir": project_files.AI_CONTEXT_DIR,
+                "project_context": project_files.PROJECT_CONTEXT,
+                "feature_changelog": project_files.FEATURE_CHANGELOG,
+                "task_plan": project_files.TASK_PLAN,
+                "workflow_state": project_files.WORKFLOW_STATE,
+                "implementation_summary": project_files.IMPLEMENTATION_SUMMARY,
+                "testing_task_ar": project_files.TESTING_TASK_AR,
+                "reviews_dir": project_files.REVIEWS_DIR,
+                "claude_dir": project_files.CLAUDE_DIR,
+                "deployment_config": project_files.DEPLOYMENT_CONFIG,
+                "workflow_lock": project_files.WORKFLOW_LOCK,
+                "tracked_shared_files": list(project_files.TRACKED_SHARED_FILES),
+                "reset_paths": list(project_files.RESET_PATHS),
+            },
+            True,
+        )
+        return exit_codes.SUCCESS
+
+    if args.project_command == "ensure-gitignore":
+        result = project_files.ensure_gitignore_block(repo)
+        if result["action"] == "conflict":
+            _err(result["detail"])
+            return exit_codes.VALIDATION_FAILURE
+        _out(result if args.json else f".gitignore managed block: {result['action']}", args.json)
+        return exit_codes.SUCCESS
+
+    if args.project_command == "migrate":
+        result = project_files.migrate_legacy_layout(repo, dry_run=args.dry_run)
+        if result["conflicts"]:
+            for item in result["conflicts"]:
+                _err(
+                    f"both {item['from']} and {item['to']} exist; move or remove "
+                    "one of them manually [MIGRATE_CONFLICT]"
+                )
+            if args.json:
+                _out(result, True)
+            return exit_codes.VALIDATION_FAILURE
+        if args.json:
+            _out(result, True)
+        elif result["moved"]:
+            verb = "would move" if args.dry_run else "moved"
+            for item in result["moved"]:
+                print(f"{verb} {item['from']} -> {item['to']}")
+        else:
+            print("Layout is already current; nothing to migrate.")
+        return exit_codes.SUCCESS
+
+    _err("unknown project command")
+    return exit_codes.INVALID_USAGE
+
+
 def cmd_security(args) -> int:
     if args.security_command != "scan":
         _err("unknown security command")
@@ -471,6 +528,24 @@ def build_parser() -> argparse.ArgumentParser:
     p_verify.add_argument("--expected", required=True)
     p_verify.add_argument("--server-head", required=True, dest="server_head")
 
+    p_project = sub.add_parser(
+        "project", help="Managed project files, .gitignore block, and layout migration"
+    )
+    project_sub = p_project.add_subparsers(dest="project_command", required=True)
+    project_sub.add_parser("paths", help="Print the centralized managed-file paths")
+    project_sub.add_parser(
+        "ensure-gitignore", help="Idempotently write the managed .gitignore block"
+    )
+    p_migrate = project_sub.add_parser(
+        "migrate", help="Move an old-layout application onto docs/ai-context/"
+    )
+    p_migrate.add_argument(
+        "--dry-run",
+        action="store_true",
+        dest="dry_run",
+        help="Report what would move without touching any file",
+    )
+
     p_security = sub.add_parser("security", help="Secret scanning")
     security_sub = p_security.add_subparsers(dest="security_command", required=True)
     security_sub.add_parser(
@@ -488,6 +563,7 @@ HANDLERS = {
     "git": cmd_git,
     "review": cmd_review,
     "deployment": cmd_deployment,
+    "project": cmd_project,
     "security": cmd_security,
 }
 

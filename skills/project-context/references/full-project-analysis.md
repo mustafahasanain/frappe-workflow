@@ -1,6 +1,7 @@
 # Full Project Analysis (first-time)
 
-Performed once, when `PROJECT_CONTEXT.md` does not exist. Goal: fill every
+Performed once, when `docs/ai-context/PROJECT_CONTEXT.md` does not exist.
+Goal: fill every
 template section with verified, concise, navigation-oriented content.
 
 ## What to Inspect

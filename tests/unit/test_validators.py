@@ -11,7 +11,8 @@ class ProjectContextValidatorTests(unittest.TestCase):
     def setUp(self):
         self.tmp = support.make_temp_dir()
         self.addCleanup(shutil.rmtree, self.tmp, True)
-        self.path = self.tmp / "PROJECT_CONTEXT.md"
+        self.path = self.tmp / project_files.PROJECT_CONTEXT
+        self.path.parent.mkdir(parents=True, exist_ok=True)
 
     def test_valid_fixture_passes(self):
         self.path.write_text(
@@ -52,7 +53,8 @@ class TaskPlanValidatorTests(unittest.TestCase):
     def setUp(self):
         self.tmp = support.make_temp_dir()
         self.addCleanup(shutil.rmtree, self.tmp, True)
-        self.path = self.tmp / "TASK_PLAN.md"
+        self.path = self.tmp / project_files.TASK_PLAN
+        self.path.parent.mkdir(parents=True, exist_ok=True)
 
     def write(self, text):
         self.path.write_text(text, encoding="utf-8")
@@ -142,10 +144,12 @@ class CompletionGateTests(unittest.TestCase):
         plan = support.read_fixture("sample-task-plan.md").replace(
             "- **Status:** Pending", "- **Status:** Completed"
         )
-        (self.repo / "TASK_PLAN.md").write_text(plan, encoding="utf-8")
-        summary = self.repo / project_files.IMPLEMENTATION_SUMMARY
-        summary.parent.mkdir(parents=True, exist_ok=True)
-        summary.write_text("# Implementation Summary\n\nAll steps done.\n", encoding="utf-8")
+        support.write_repo_file(self.repo, project_files.TASK_PLAN, plan)
+        support.write_repo_file(
+            self.repo,
+            project_files.IMPLEMENTATION_SUMMARY,
+            "# Implementation Summary\n\nAll steps done.\n",
+        )
         # completion gate expects the implementation stage
         workflow_state.transition(self.repo, "implementation")
 
@@ -153,12 +157,12 @@ class CompletionGateTests(unittest.TestCase):
         self.assertEqual(validators.validate_completion_gate(self.repo), [])
 
     def test_gate_fails_on_pending_step(self):
-        plan = (self.repo / "TASK_PLAN.md").read_text(encoding="utf-8")
+        plan = (self.repo / project_files.TASK_PLAN).read_text(encoding="utf-8")
         plan = plan.replace(
             "- **Status:** Completed\n- **Action:** Create the sales summary",
             "- **Status:** Pending\n- **Action:** Create the sales summary",
         )
-        (self.repo / "TASK_PLAN.md").write_text(plan, encoding="utf-8")
+        support.write_repo_file(self.repo, project_files.TASK_PLAN, plan)
         errors = validators.validate_completion_gate(self.repo)
         self.assertTrue(any("GATE_STEP_INCOMPLETE" in e for e in errors))
 
@@ -199,7 +203,7 @@ class FinalizationGateTests(unittest.TestCase):
             .replace("- **Status:** Pending", "- **Status:** Completed")
             .replace("status: planned", "status: codex_approved")
         )
-        (self.repo / "TASK_PLAN.md").write_text(self.plan_text, encoding="utf-8")
+        support.write_repo_file(self.repo, project_files.TASK_PLAN, self.plan_text)
         self._advance_to("codex_review")
 
     def _advance_to(self, stage):
@@ -243,7 +247,7 @@ class FinalizationGateTests(unittest.TestCase):
                     self.tmp / f"stage-{stage}", initial_commit=True
                 )
                 workflow_state.init_state(repo)
-                (repo / "TASK_PLAN.md").write_text(self.plan_text, encoding="utf-8")
+                support.write_repo_file(repo, project_files.TASK_PLAN, self.plan_text)
                 if stage == "implementation":
                     workflow_state.transition(repo, "implementation")
                 elif stage == "review_fixes":
@@ -264,7 +268,7 @@ class FinalizationGateTests(unittest.TestCase):
         plain = self.tmp / "not-a-repo"
         plain.mkdir()
         workflow_state.init_state(plain)
-        (plain / "TASK_PLAN.md").write_text(self.plan_text, encoding="utf-8")
+        support.write_repo_file(plain, project_files.TASK_PLAN, self.plan_text)
         workflow_state.transition(plain, "implementation")
         workflow_state.transition(plain, "codex_review")
         self._approve_current_state(plain)
@@ -280,14 +284,14 @@ class FinalizationGateTests(unittest.TestCase):
 
     def test_gate_fails_on_missing_plan(self):
         self._approve_current_state()
-        (self.repo / "TASK_PLAN.md").unlink()
+        (self.repo / project_files.TASK_PLAN).unlink()
         self._approve_current_state()  # fingerprint changed by the deletion
         errors = validators.validate_finalization_gate(self.repo)
         self.assertTrue(any("FINAL_NO_PLAN" in e for e in errors))
 
     def test_gate_fails_on_plan_without_frontmatter(self):
         body = self.plan_text.split("---", 2)[2]
-        (self.repo / "TASK_PLAN.md").write_text(body, encoding="utf-8")
+        support.write_repo_file(self.repo, project_files.TASK_PLAN, body)
         self._approve_current_state()
         errors = validators.validate_finalization_gate(self.repo)
         self.assertTrue(any("PLAN_NO_FRONTMATTER" in e for e in errors))
@@ -297,9 +301,10 @@ class FinalizationGateTests(unittest.TestCase):
         )
 
     def test_gate_fails_on_plan_missing_required_section(self):
-        (self.repo / "TASK_PLAN.md").write_text(
+        support.write_repo_file(
+            self.repo,
+            project_files.TASK_PLAN,
             self.plan_text.replace("## Acceptance Criteria", "## Acceptance Notes"),
-            encoding="utf-8",
         )
         self._approve_current_state()
         errors = validators.validate_finalization_gate(self.repo)
@@ -307,12 +312,13 @@ class FinalizationGateTests(unittest.TestCase):
         self.assertTrue(any("FINAL_PLAN_INVALID" in e for e in errors))
 
     def test_gate_fails_on_plan_with_invalid_step_status(self):
-        (self.repo / "TASK_PLAN.md").write_text(
+        support.write_repo_file(
+            self.repo,
+            project_files.TASK_PLAN,
             self.plan_text.replace(
                 "- **Status:** Completed\n- **Action:** Create the sales summary",
                 "- **Status:** Done\n- **Action:** Create the sales summary",
             ),
-            encoding="utf-8",
         )
         self._approve_current_state()
         errors = validators.validate_finalization_gate(self.repo)
@@ -320,9 +326,10 @@ class FinalizationGateTests(unittest.TestCase):
         self.assertTrue(any("FINAL_PLAN_INVALID" in e for e in errors))
 
     def test_gate_fails_on_wrong_plan_status(self):
-        (self.repo / "TASK_PLAN.md").write_text(
+        support.write_repo_file(
+            self.repo,
+            project_files.TASK_PLAN,
             self.plan_text.replace("status: codex_approved", "status: in_progress"),
-            encoding="utf-8",
         )
         self._approve_current_state()
         errors = validators.validate_finalization_gate(self.repo)
@@ -351,8 +358,10 @@ class FinalizationGateTests(unittest.TestCase):
 
     def test_documentation_finalization_keeps_approval(self):
         self._approve_current_state()
-        (self.repo / "FEATURE_CHANGELOG.md").write_text(
-            "# Feature Changelog\n\n## Feature Index\n", encoding="utf-8"
+        support.write_repo_file(
+            self.repo,
+            project_files.FEATURE_CHANGELOG,
+            "# Feature Changelog\n\n## Feature Index\n",
         )
         errors = validators.validate_finalization_gate(self.repo)
         self.assertFalse(any("FINAL_FINGERPRINT_MISMATCH" in e for e in errors))

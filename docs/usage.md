@@ -14,8 +14,8 @@ how you resume after closing and reopening Claude Code.
 | Action | What it does |
 |---|---|
 | *(none)* | Resume the active task from its persisted workflow stage |
-| `init` | Initialize the application: detect bench/app/Sites, generate or validate `PROJECT_CONTEXT.md` and `FEATURE_CHANGELOG.md`, prepare local workflow storage. Does not start a task |
-| `start` | Accept a prepared plan or a task description and generate a validated, repository-aware `TASK_PLAN.md` |
+| `init` | Initialize the application: detect bench/app/Sites, migrate an older file layout, generate or validate `docs/ai-context/PROJECT_CONTEXT.md` and `docs/ai-context/FEATURE_CHANGELOG.md`, prepare shared workflow storage. Does not start a task |
+| `start` | Accept a prepared plan or a task description and generate a validated, repository-aware `docs/ai-context/TASK_PLAN.md` |
 | `status` | Read-only report of task, stage, progress, review, commit, deployment, blockers, and inconsistencies |
 | `review` | Validate the completion gate and generate a Codex review prompt (Codex is not run automatically) |
 | `apply-review` | Process an `APPROVED` or `CHANGES_REQUIRED` result, record the review round, and route to `review_fixes` or `ready_for_commit` |
@@ -54,8 +54,10 @@ Plan: add a daily Telegram sales summary.
 ```
 
 The plan is treated as **input, not truth**. Before it becomes
-`TASK_PLAN.md`, the plugin reads `PROJECT_CONTEXT.md`, searches
-`FEATURE_CHANGELOG.md`, verifies every path against the repository, adds
+`docs/ai-context/TASK_PLAN.md`, the plugin reads
+`docs/ai-context/PROJECT_CONTEXT.md`, searches
+`docs/ai-context/FEATURE_CHANGELOG.md`, verifies every path against the
+repository, adds
 missing technical steps (validation, migration, security), and reports each
 correction it made. What it will not do silently is change your business
 objective, add unrelated features, or widen the scope.
@@ -81,20 +83,55 @@ current task — later phases become their own tasks.
 
 ```text
 <app-repository>/
-├── PROJECT_CONTEXT.md            tracked — navigation and architecture map
-├── FEATURE_CHANGELOG.md          tracked — functional feature registry
-├── TASK_PLAN.md                  tracked — the one active task
-└── .claude/                      local, ignored
-    ├── task-workflow.json        logical workflow state
-    ├── deployment.local.json     your deployment config (you create it)
-    ├── implementation-summary.md what was actually built
-    ├── testing-task-ar.md        the Arabic testing task
-    └── reviews/                  round-NNN-prompt.md / round-NNN-result.md
+├── docs/ai-context/                  tracked — shared AI context
+│   ├── PROJECT_CONTEXT.md            navigation and architecture map
+│   ├── FEATURE_CHANGELOG.md          functional feature registry
+│   ├── TASK_PLAN.md                  the one active task
+│   ├── task-workflow.json            logical workflow state
+│   ├── implementation-summary.md     what was actually built
+│   ├── testing-task-ar.md            the Arabic testing task
+│   └── reviews/                      round-NNN-prompt.md / round-NNN-result.md
+└── .claude/                          local, ignored
+    ├── deployment.local.json         your deployment config (you create it)
+    └── task-workflow.lock            advisory write lock
 ```
 
-The ignored entries are maintained inside a managed block in your
+Only those two `.claude/` files are ignored, through a managed block in your
 `.gitignore`; the rest of that file is never touched. Details in
 [../references/file-lifecycle.md](../references/file-lifecycle.md).
+
+## Continuing a Task on Another Computer
+
+Because `docs/ai-context/` is tracked, an unfinished task is portable:
+
+1. On the first computer, commit the shared files on the working branch and
+   push. A work-in-progress checkpoint commit is fine for this.
+2. On the second computer, pull or check out that branch.
+3. Run `/frappe-workflow:frappe-task` with no action — it resumes from
+   `docs/ai-context/task-workflow.json` at the recorded stage.
+
+Taking these files out of `.gitignore` makes them *trackable*, not
+*synchronized*: Git commit, push, and pull are still required, and the
+plugin never performs any of them for you. `.claude/deployment.local.json`
+stays specific to each computer and is created separately on each.
+
+## Migrating an Application from the Old Layout
+
+Applications initialized before this layout keep `PROJECT_CONTEXT.md`,
+`FEATURE_CHANGELOG.md`, and `TASK_PLAN.md` at the repository root and the
+workflow files under `.claude/`. The `init` action migrates them; you can
+also run it directly:
+
+```bash
+bin/frappe-workflow project migrate --dry-run   # report what would move
+bin/frappe-workflow project migrate             # move it
+```
+
+Contents and the full review history are preserved, old entries are removed
+from the managed `.gitignore` block, `.claude/deployment.local.json` is
+never touched, and rerunning it does nothing. If a path exists in **both**
+layouts the command stops with `MIGRATE_CONFLICT` (exit 1) without moving
+anything, so you decide which copy is current.
 
 ## What Requires Your Explicit Approval
 
@@ -145,6 +182,10 @@ bin/frappe-workflow deployment required-commands [--commit <hash>]
 bin/frappe-workflow deployment verify --expected <hash> --server-head <hash>
 
 bin/frappe-workflow security scan
+
+bin/frappe-workflow project paths
+bin/frappe-workflow project ensure-gitignore
+bin/frappe-workflow project migrate [--dry-run]
 ```
 
 Global options: `--repo <path>` (target repository, default: current
@@ -163,6 +204,17 @@ A typo is an error rather than a new junk key, and four paths are refused
 because a dedicated operation enforces a rule a raw write would bypass:
 `current_stage` (use `state transition`), `blockers` (use `state blocker`),
 `transition_history`, and `schema_version`.
+
+`project paths` prints every managed location as JSON, so scripts and
+skills never hard-code one:
+
+```bash
+bin/frappe-workflow project paths
+```
+
+`project ensure-gitignore` writes or repairs the managed `.gitignore` block
+idempotently, and `project migrate` moves an old-layout application onto
+`docs/ai-context/`. Both are run by the `init` action.
 
 ### Exit Codes
 
@@ -188,3 +240,9 @@ cross-checked against Git, and work continues from the recorded stage. If
 something is genuinely inconsistent — say the recorded commit no longer
 exists — the plugin stops and tells you exactly what it found instead of
 guessing.
+
+The same applies across computers: because
+`docs/ai-context/task-workflow.json` is committed with the branch, pulling
+that branch on a second machine and running the command with no action
+resumes the task there. See
+[Continuing a Task on Another Computer](#continuing-a-task-on-another-computer).

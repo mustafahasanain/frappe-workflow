@@ -12,7 +12,7 @@ import re
 import unittest
 
 import support
-from core import workflow_state
+from core import project_files, workflow_state
 
 HELP_DOC = (
     support.PLUGIN_ROOT / "skills" / "frappe-task" / "examples" / "help-output.md"
@@ -105,7 +105,35 @@ class HelpDocumentTests(unittest.TestCase):
 
     def test_no_action_resume_is_stated(self):
         self.assertRegex(self.block, r"no action resumes the active task")
-        self.assertIn("task-workflow.json", self.block)
+        self.assertIn(project_files.WORKFLOW_STATE, self.block)
+
+    def test_shared_paths_are_shown_in_full(self):
+        for name in (
+            project_files.WORKFLOW_STATE,
+            project_files.PROJECT_CONTEXT,
+            project_files.FEATURE_CHANGELOG,
+            project_files.TASK_PLAN,
+        ):
+            with self.subTest(name=name):
+                self.assertIn(name, self.block)
+
+    def test_no_stale_shared_locations(self):
+        """The old locations must not be advertised anywhere in help."""
+        for stale in (
+            ".claude/task-workflow.json",
+            ".claude/implementation-summary.md",
+            ".claude/testing-task-ar.md",
+            ".claude/reviews",
+        ):
+            with self.subTest(stale=stale):
+                self.assertNotIn(stale, self.block)
+
+    def test_cross_device_continuation_is_explained(self):
+        self.assertIn(project_files.AI_CONTEXT_DIR, self.block)
+        self.assertRegex(self.block, r"tracked by Git")
+        self.assertRegex(self.block, r"another\s+computer")
+        # Deployment config is explicitly per-computer.
+        self.assertIn(project_files.DEPLOYMENT_CONFIG, self.block)
 
     def test_help_is_declared_read_only(self):
         self.assertRegex(self.block, r"help {2,}Show this message\. Read-only\.")

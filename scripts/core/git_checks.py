@@ -11,6 +11,8 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+from . import project_files
+
 
 class GitError(Exception):
     pass
@@ -137,15 +139,22 @@ def commit_files(repo: Path, commit: str) -> list[str]:
 # Documentation-only files edited during finalization. Excluded from the
 # implementation fingerprint so post-approval finalization updates do not
 # invalidate a valid approval (they cannot affect application behavior).
+# They now live under the excluded AI-context directory as well; naming them
+# explicitly keeps the rule true if that directory exclusion ever narrows.
 FINALIZATION_FILES = (
-    "TASK_PLAN.md",
-    "FEATURE_CHANGELOG.md",
-    "PROJECT_CONTEXT.md",
+    project_files.TASK_PLAN,
+    project_files.FEATURE_CHANGELOG,
+    project_files.PROJECT_CONTEXT,
 )
 
-# Workflow-internal files must never affect the fingerprint, even when the
-# managed .gitignore block is not (yet) in place in the target repository.
-FINGERPRINT_EXCLUDED_DIRS = (".claude",)
+# Workflow and machine-local files must never affect the implementation
+# fingerprint. The shared workflow data is tracked by Git for cross-device
+# continuation, but it is not application behavior, so a plan edit, a state
+# write, a new review round, or a testing note cannot invalidate an approval.
+FINGERPRINT_EXCLUDED_DIRS = (
+    project_files.AI_CONTEXT_DIR,
+    project_files.CLAUDE_DIR,
+)
 
 
 def implementation_fingerprint(

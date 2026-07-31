@@ -5,7 +5,7 @@ import shutil
 import unittest
 
 import support
-from core import workflow_state
+from core import project_files, workflow_state
 
 
 class StateLifecycleTests(unittest.TestCase):
@@ -26,11 +26,36 @@ class StateLifecycleTests(unittest.TestCase):
         # force is the controlled-reset path
         workflow_state.init_state(self.repo, overwrite=True)
 
+    def test_state_lives_in_the_shared_ai_context_directory(self):
+        workflow_state.init_state(self.repo)
+        path = workflow_state.state_path(self.repo)
+        self.assertEqual(
+            path.relative_to(self.repo).as_posix(), project_files.WORKFLOW_STATE
+        )
+        self.assertTrue(path.is_file())
+
+    def test_lock_stays_machine_local(self):
+        workflow_state.init_state(self.repo)
+        lock = workflow_state.lock_path(self.repo)
+        self.assertEqual(
+            lock.relative_to(self.repo).as_posix(), project_files.WORKFLOW_LOCK
+        )
+        # The lock must never be written next to the shared state file.
+        self.assertNotIn(
+            project_files.AI_CONTEXT_DIR, lock.relative_to(self.repo).as_posix()
+        )
+
     def test_atomic_write_leaves_no_temp_files(self):
         workflow_state.init_state(self.repo)
-        claude_dir = self.repo / ".claude"
-        leftovers = [p for p in claude_dir.iterdir() if p.name.endswith(".tmp")]
-        self.assertEqual(leftovers, [])
+        workflow_state.transition(self.repo, "implementation")
+        for directory in (
+            workflow_state.state_path(self.repo).parent,
+            workflow_state.lock_path(self.repo).parent,
+        ):
+            leftovers = sorted(
+                p.name for p in directory.iterdir() if p.name.endswith(".tmp")
+            )
+            self.assertEqual(leftovers, [], f"temp files left in {directory}")
 
     def test_save_rejects_invalid_state(self):
         state = workflow_state.default_state()

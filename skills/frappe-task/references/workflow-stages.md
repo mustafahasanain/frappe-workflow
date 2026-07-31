@@ -1,11 +1,12 @@
 # Workflow Stages
 
 The nine stages of a task's life. The persisted `current_stage` in
-`.claude/task-workflow.json` is authoritative; Git only corroborates it.
+`docs/ai-context/task-workflow.json` is authoritative; Git only corroborates it.
 
 ## planning
 
-Entered at `start` (or state init). `TASK_PLAN.md` is being created or
+Entered at `start` (or state init). `docs/ai-context/TASK_PLAN.md` is
+being created or
 validated. No implementation happens here. Exit: planning gate passes →
 `implementation`.
 
@@ -14,7 +15,7 @@ Owner: task-planning skill.
 ## implementation
 
 The approved plan is executed step by step; step statuses live in
-`TASK_PLAN.md`, aggregate counts in state. Self-transition
+`docs/ai-context/TASK_PLAN.md`, aggregate counts in state. Self-transition
 (`implementation → implementation`) records notable progress events.
 Exit: completion gate passes and a review bundle is generated →
 `codex_review`.
@@ -24,7 +25,7 @@ Owner: task-implementation skill.
 ## codex_review
 
 A review prompt for the current fingerprint exists at
-`.claude/reviews/round-NNN-prompt.md`. The workflow waits for the user to
+`docs/ai-context/reviews/round-NNN-prompt.md`. The workflow waits for the user to
 bring back Codex's verdict via `apply-review`. Nothing may modify
 implementation files in this stage (that would desynchronize the
 fingerprint).
@@ -45,8 +46,10 @@ Owner: codex-review skill (fix loop) + task-implementation skill (edits).
 
 ## ready_for_commit
 
-Approval is valid and finalization ran: `FEATURE_CHANGELOG.md` updated,
-`PROJECT_CONTEXT.md` updated when architecture changed, plan status
+Approval is valid and finalization ran:
+`docs/ai-context/FEATURE_CHANGELOG.md` updated,
+`docs/ai-context/PROJECT_CONTEXT.md` updated when architecture changed,
+plan status
 `codex_approved`, review record added. Any code/behavior change here
 invalidates approval → back to `review_fixes` (the only backward
 transition in the engine). Exit: user explicitly executes the prepared
@@ -78,7 +81,8 @@ Owner: deployment skill → testing-task skill.
 ## completed
 
 The task is closed: testing task generated, state final. A new `start`
-may now replace `TASK_PLAN.md`. No transitions out; a new task begins with
+may now replace `docs/ai-context/TASK_PLAN.md`. No transitions out; a new
+task begins with
 a fresh state (`start`).
 
 ## Controlled Reset

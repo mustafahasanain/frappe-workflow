@@ -9,12 +9,12 @@ from core import project_files, review_bundle
 
 def make_review_repo(tmp):
     repo = support.init_repo(tmp / "repo", initial_commit=True)
-    (repo / "TASK_PLAN.md").write_text(
-        support.read_fixture("sample-task-plan.md"), encoding="utf-8"
+    support.write_fixture_file(repo, project_files.TASK_PLAN, "sample-task-plan.md")
+    support.write_repo_file(
+        repo,
+        project_files.IMPLEMENTATION_SUMMARY,
+        "# Implementation Summary\n\nDone.\n",
     )
-    summary = repo / project_files.IMPLEMENTATION_SUMMARY
-    summary.parent.mkdir(parents=True, exist_ok=True)
-    summary.write_text("# Implementation Summary\n\nDone.\n", encoding="utf-8")
     (repo / "sales_summary.py").write_text("TOTAL = 0\n", encoding="utf-8")
     return repo
 
@@ -47,8 +47,9 @@ class BundleTests(unittest.TestCase):
         second = review_bundle.create_bundle(self.repo)
         self.assertEqual(first["round"], 1)
         self.assertEqual(second["round"], 2)
-        self.assertTrue((self.repo / ".claude/reviews/round-001-prompt.md").is_file())
-        self.assertTrue((self.repo / ".claude/reviews/round-002-prompt.md").is_file())
+        reviews = self.repo / project_files.REVIEWS_DIR
+        self.assertTrue((reviews / "round-001-prompt.md").is_file())
+        self.assertTrue((reviews / "round-002-prompt.md").is_file())
 
     def test_round_counts_results_too(self):
         directory = review_bundle.reviews_dir(self.repo)

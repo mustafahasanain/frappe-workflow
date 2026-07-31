@@ -16,17 +16,25 @@ Usage:
   /frappe-workflow:frappe-task [action] [input]
 
 Running the command with no action resumes the active task from its
-persisted workflow stage, recorded in .claude/task-workflow.json.
+persisted workflow stage, recorded in docs/ai-context/task-workflow.json.
+
+All shared workflow files live in docs/ai-context/ and are tracked by Git,
+so an active task can continue on another computer once you commit and
+push the working branch. Only .claude/deployment.local.json and
+.claude/task-workflow.lock stay specific to this computer.
 
 Actions:
 
   init          Initialize the current Frappe application: detect the
-                bench, application, and available Sites; generate or
-                validate PROJECT_CONTEXT.md and FEATURE_CHANGELOG.md; and
-                prepare local workflow storage. Does not start a task.
+                bench, application, and available Sites; migrate an older
+                file layout; generate or validate the shared documents
+                docs/ai-context/PROJECT_CONTEXT.md and
+                docs/ai-context/FEATURE_CHANGELOG.md; and prepare shared
+                workflow storage. Does not start a task.
 
   start         Accept a prepared plan or a plain task description and
-                generate a validated, repository-aware TASK_PLAN.md.
+                generate a validated, repository-aware
+                docs/ai-context/TASK_PLAN.md.
 
   status        Report the current task, stage, implementation progress,
                 review round, commit, deployment, blockers, and any
@@ -54,7 +62,9 @@ Actions:
 
   reset         Reset the active task workflow state after explicit
                 confirmation. Never touches Git history, application
-                files, PROJECT_CONTEXT.md, or FEATURE_CHANGELOG.md.
+                files, docs/ai-context/PROJECT_CONTEXT.md,
+                docs/ai-context/FEATURE_CHANGELOG.md, or
+                .claude/deployment.local.json.
 
   help          Show this message. Read-only.
 
@@ -99,6 +109,8 @@ Examples:
   `in_progress`, or `done`.
 - `init` initializes the application; it never starts a task. `start` is
   what creates a task.
+- The paths above are the real locations. Never print the old root-level
+  or `.claude/` locations for the shared workflow files.
 - `review` generates a prompt; the plugin never runs Codex itself.
 - Never truncate a description mid-sentence. Every line above is complete
   as written.

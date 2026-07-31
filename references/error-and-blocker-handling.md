@@ -4,7 +4,7 @@
 
 Blockers are recorded in two places, always together:
 
-1. **The plan step** (`TASK_PLAN.md`):
+1. **The plan step** (`docs/ai-context/TASK_PLAN.md`):
 
 ```markdown
 - **Status:** Blocked
@@ -30,9 +30,9 @@ is actually resolved and the step re-validated.
 **Recoverable (fix and continue):**
 
 - State says `implementation` but a step status is stale → re-derive step
-  counts from `TASK_PLAN.md` and update state.
+  counts from `docs/ai-context/TASK_PLAN.md` and update state.
 - Review prompt exists but state lost the round number → recount from
-  `.claude/reviews/` filenames (the CLI already does this).
+  `docs/ai-context/reviews/` filenames (the CLI already does this).
 - `analyzed_commit` behind HEAD → incremental context update.
 
 **Non-recoverable without user judgment (stop and report):**
@@ -40,7 +40,7 @@ is actually resolved and the step re-validated.
 - State says `committed` but the recorded commit hash does not exist.
 - State says `ready_for_commit` but the fingerprint no longer matches
   (approval invalidated — needs another review round, tell the user).
-- `TASK_PLAN.md` deleted while a task is active.
+- `docs/ai-context/TASK_PLAN.md` deleted while a task is active.
 - Unknown `schema_version` in the state file — never silently repair or
   migrate; report and let the user decide.
 - Unrelated files already staged by someone else.
@@ -50,7 +50,7 @@ is actually resolved and the step re-validated.
 When Claude Code reopens mid-task, the no-action command:
 
 1. Detects the environment.
-2. Loads and validates `.claude/task-workflow.json`.
+2. Loads and validates `docs/ai-context/task-workflow.json`.
 3. Cross-checks state against Git (branch, HEAD vs `base_commit`, recorded
    commit hash, fingerprint when in `ready_for_commit`).
 4. Continues from the recorded stage, or stops with a precise inconsistency

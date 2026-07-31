@@ -18,14 +18,14 @@ Target Site: car.wash
 Branch:      feature/almasah-telegram-reports
 HEAD:        4f2c9ab
 
-Plan:        in_progress (TASK_PLAN.md valid)
+Plan:        in_progress (docs/ai-context/TASK_PLAN.md valid)
 Steps:       6 total — 5 completed, 1 in progress, 0 blocked
 
 Codex Review:
   Round:     2
   Status:    changes_required
-  Prompt:    .claude/reviews/round-002-prompt.md
-  Result:    .claude/reviews/round-002-result.md
+  Prompt:    docs/ai-context/reviews/round-002-prompt.md
+  Result:    docs/ai-context/reviews/round-002-result.md
   Open findings: 1 of 3 remaining
 
 Commit:      not created

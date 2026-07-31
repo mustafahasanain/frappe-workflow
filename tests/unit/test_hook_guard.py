@@ -64,7 +64,7 @@ class DangerousCommandTests(unittest.TestCase):
         "git commit -m 'feat(stock): add reservation'",
         "git restore --staged file.py",
         "git checkout -b feature/new-branch",
-        "rm -rf .claude/reviews",
+        "rm -rf docs/ai-context/reviews",
         "bench --site car.wash migrate",
         "bench build --app general_trading",
         "python3 -m unittest discover -s tests",

@@ -98,15 +98,15 @@ class ValidatorExitCodeTests(unittest.TestCase):
         result = run_cli("validate", "task-plan", cwd=self.repo)
         self.assertEqual(result.returncode, 1)  # missing file
 
-        (self.repo / "TASK_PLAN.md").write_text(
-            support.read_fixture("sample-task-plan.md"), encoding="utf-8"
+        support.write_fixture_file(
+            self.repo, project_files.TASK_PLAN, "sample-task-plan.md"
         )
         result = run_cli("validate", "task-plan", cwd=self.repo)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_project_context_validation(self):
-        (self.repo / "PROJECT_CONTEXT.md").write_text(
-            support.read_fixture("sample-project-context.md"), encoding="utf-8"
+        support.write_fixture_file(
+            self.repo, project_files.PROJECT_CONTEXT, "sample-project-context.md"
         )
         result = run_cli("validate", "project-context", cwd=self.repo)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -123,8 +123,8 @@ class FeatureTests(unittest.TestCase):
         self.tmp = support.make_temp_dir()
         self.addCleanup(shutil.rmtree, self.tmp, True)
         self.repo = support.init_repo(self.tmp / "repo", initial_commit=True)
-        (self.repo / "FEATURE_CHANGELOG.md").write_text(
-            support.read_fixture("sample-feature-changelog.md"), encoding="utf-8"
+        support.write_fixture_file(
+            self.repo, project_files.FEATURE_CHANGELOG, "sample-feature-changelog.md"
         )
 
     def test_next_id(self):
@@ -161,12 +161,14 @@ class GitAndReviewTests(unittest.TestCase):
         self.assertNotEqual(first, third)
 
     def test_review_bundle_creation(self):
-        (self.repo / "TASK_PLAN.md").write_text(
-            support.read_fixture("sample-task-plan.md"), encoding="utf-8"
+        support.write_fixture_file(
+            self.repo, project_files.TASK_PLAN, "sample-task-plan.md"
         )
-        summary = self.repo / project_files.IMPLEMENTATION_SUMMARY
-        summary.parent.mkdir(parents=True)
-        summary.write_text("# Implementation Summary\n\nDone.\n", encoding="utf-8")
+        support.write_repo_file(
+            self.repo,
+            project_files.IMPLEMENTATION_SUMMARY,
+            "# Implementation Summary\n\nDone.\n",
+        )
         result = run_cli("--json", "review", "bundle", cwd=self.repo)
         self.assertEqual(result.returncode, 0, result.stderr)
         data = json.loads(result.stdout)
@@ -225,12 +227,13 @@ class DeploymentCliTests(unittest.TestCase):
         self.assertIn("DEPLOY_NO_CONFIG", result.stderr)
 
     def test_valid_config_and_required_commands(self):
-        config_path = self.repo / ".claude" / "deployment.local.json"
-        config_path.parent.mkdir(parents=True)
-        example = (
-            support.PLUGIN_ROOT / "templates/state/deployment.local.json.example"
-        ).read_text(encoding="utf-8")
-        config_path.write_text(example, encoding="utf-8")
+        support.write_repo_file(
+            self.repo,
+            project_files.DEPLOYMENT_CONFIG,
+            (
+                support.PLUGIN_ROOT / "templates/state/deployment.local.json.example"
+            ).read_text(encoding="utf-8"),
+        )
 
         result = run_cli("deployment", "validate-config", cwd=self.repo)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -243,12 +246,12 @@ class DeploymentCliTests(unittest.TestCase):
         self.assertIn(["bench", "--site", "car.wash", "migrate"], commands)
 
     def test_verify_matching_and_mismatching_head(self):
-        config_path = self.repo / ".claude" / "deployment.local.json"
-        config_path.parent.mkdir(parents=True)
-        config_path.write_text(
-            (support.PLUGIN_ROOT / "templates/state/deployment.local.json.example")
-            .read_text(encoding="utf-8"),
-            encoding="utf-8",
+        support.write_repo_file(
+            self.repo,
+            project_files.DEPLOYMENT_CONFIG,
+            (
+                support.PLUGIN_ROOT / "templates/state/deployment.local.json.example"
+            ).read_text(encoding="utf-8"),
         )
         ok = run_cli(
             "deployment", "verify",
@@ -326,19 +329,20 @@ class FullWorkflowWalkthroughTests(unittest.TestCase):
         self.assertEqual(detected["app_name"], "general_trading")
 
         # 2. Project documentation in place and valid
-        (self.app / "PROJECT_CONTEXT.md").write_text(
-            support.read_fixture("sample-project-context.md"), encoding="utf-8"
+        support.write_fixture_file(
+            self.app, project_files.PROJECT_CONTEXT, "sample-project-context.md"
         )
-        (self.app / "FEATURE_CHANGELOG.md").write_text(
-            support.read_fixture("sample-feature-changelog.md"), encoding="utf-8"
+        support.write_fixture_file(
+            self.app, project_files.FEATURE_CHANGELOG, "sample-feature-changelog.md"
         )
         self.assert_ok(self.cli("validate", "project-context"), "validate context")
         self.assert_ok(self.cli("validate", "feature-changelog"), "validate changelog")
 
         # 3. Planning
         self.assert_ok(self.cli("state", "init"), "state init")
-        plan_path = self.app / "TASK_PLAN.md"
-        plan_path.write_text(support.read_fixture("sample-task-plan.md"), encoding="utf-8")
+        plan_path = support.write_fixture_file(
+            self.app, project_files.TASK_PLAN, "sample-task-plan.md"
+        )
         self.assert_ok(self.cli("validate", "task-plan"), "validate plan")
         self.assert_ok(self.cli("state", "set", "task_id", "TASK-2026-001"), "set task id")
         self.assert_ok(
@@ -364,11 +368,10 @@ class FullWorkflowWalkthroughTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        summary = self.app / project_files.IMPLEMENTATION_SUMMARY
-        summary.parent.mkdir(parents=True, exist_ok=True)
-        summary.write_text(
+        support.write_repo_file(
+            self.app,
+            project_files.IMPLEMENTATION_SUMMARY,
             "# Implementation Summary\n\n## Completed Task\n\nTASK-2026-001\n",
-            encoding="utf-8",
         )
         self.assert_ok(self.cli("validate", "completion-gate"), "completion gate")
 
@@ -387,11 +390,11 @@ class FullWorkflowWalkthroughTests(unittest.TestCase):
         self.assert_ok(self.cli("state", "transition", "codex_review"), "-> codex_review")
 
         # 6. Codex approves; fingerprint still matches
-        result_file = self.app / ".claude" / "reviews" / "round-001-result.md"
-        result_file.write_text(
+        result_file = support.write_repo_file(
+            self.app,
+            f"{project_files.REVIEWS_DIR}/round-001-result.md",
             "# Review Result\n\n- **Status:** APPROVED\n\n"
             "## Verified Items\n\n- All implementation steps match the plan.\n",
-            encoding="utf-8",
         )
         parsed = json.loads(
             self.assert_ok(
@@ -446,9 +449,13 @@ class FullWorkflowWalkthroughTests(unittest.TestCase):
             self.cli("state", "transition", "ready_for_commit"), "-> ready_for_commit 2"
         )
 
-        support.run_git(self.app, "add", "--", "TASK_PLAN.md", "PROJECT_CONTEXT.md",
-                        "FEATURE_CHANGELOG.md",
-                        "general_trading/telegram/sales_summary.py")
+        support.run_git(
+            self.app, "add", "--",
+            project_files.TASK_PLAN,
+            project_files.PROJECT_CONTEXT,
+            project_files.FEATURE_CHANGELOG,
+            "general_trading/telegram/sales_summary.py",
+        )
         support.run_git(
             self.app, "commit", "-q", "-m", "feat(telegram): add scheduled reporting"
         )
@@ -511,6 +518,152 @@ class StateFileIsIgnoredByFingerprintTests(unittest.TestCase):
         run_cli("state", "transition", "implementation", cwd=repo)
         after = run_cli("git", "fingerprint", cwd=repo).stdout.strip()
         self.assertEqual(before, after)
+
+
+class ProjectCommandTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = support.make_temp_dir()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.repo = support.init_repo(self.tmp / "repo", initial_commit=True)
+
+    def test_paths_reports_the_centralized_constants(self):
+        result = run_cli("project", "paths", cwd=self.repo)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["workflow_state"], project_files.WORKFLOW_STATE)
+        self.assertEqual(data["reviews_dir"], project_files.REVIEWS_DIR)
+        self.assertEqual(data["deployment_config"], project_files.DEPLOYMENT_CONFIG)
+        self.assertEqual(
+            data["tracked_shared_files"], list(project_files.TRACKED_SHARED_FILES)
+        )
+
+    def test_ensure_gitignore_is_idempotent(self):
+        first = run_cli("--json", "project", "ensure-gitignore", cwd=self.repo)
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertTrue(json.loads(first.stdout)["changed"])
+        second = run_cli("--json", "project", "ensure-gitignore", cwd=self.repo)
+        self.assertEqual(json.loads(second.stdout)["action"], "unchanged")
+
+    def test_migrate_moves_a_legacy_layout(self):
+        support.write_repo_file(self.repo, "TASK_PLAN.md", "# Plan\n")
+        support.write_repo_file(self.repo, ".claude/task-workflow.json", "{}\n")
+        result = run_cli("--json", "project", "migrate", cwd=self.repo)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual(
+            sorted(item["to"] for item in data["moved"]),
+            sorted([project_files.TASK_PLAN, project_files.WORKFLOW_STATE]),
+        )
+        self.assertTrue((self.repo / project_files.TASK_PLAN).is_file())
+        self.assertFalse((self.repo / "TASK_PLAN.md").exists())
+
+    def test_init_side_commands_never_create_task_state(self):
+        """The deterministic half of `init` must not start a task."""
+        self.assertEqual(
+            run_cli("project", "migrate", cwd=self.repo).returncode, 0
+        )
+        self.assertEqual(
+            run_cli("project", "ensure-gitignore", cwd=self.repo).returncode, 0
+        )
+        for name in (
+            project_files.WORKFLOW_STATE,
+            project_files.TASK_PLAN,
+            project_files.IMPLEMENTATION_SUMMARY,
+            project_files.TESTING_TASK_AR,
+        ):
+            with self.subTest(name=name):
+                self.assertFalse(
+                    (self.repo / name).exists(), f"init must not create {name}"
+                )
+        # Nor may it recreate anything at an old location.
+        for old_rel, _ in project_files.LEGACY_PATHS:
+            with self.subTest(old=old_rel):
+                self.assertFalse((self.repo / old_rel).exists())
+
+    def test_migrate_conflict_exits_1(self):
+        support.write_repo_file(self.repo, "TASK_PLAN.md", "old\n")
+        support.write_repo_file(self.repo, project_files.TASK_PLAN, "new\n")
+        result = run_cli("project", "migrate", cwd=self.repo)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("MIGRATE_CONFLICT", result.stderr)
+        self.assertTrue((self.repo / "TASK_PLAN.md").is_file())
+
+
+class SharedLayoutTrackingTests(unittest.TestCase):
+    """docs/ai-context/ must stay committable, scanned, and fingerprint-free."""
+
+    def setUp(self):
+        self.tmp = support.make_temp_dir()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.repo = support.init_repo(self.tmp / "repo", initial_commit=True)
+        run_cli("project", "ensure-gitignore", cwd=self.repo)
+
+    def test_shared_files_are_trackable_and_local_state_is_not(self):
+        run_cli("state", "init", cwd=self.repo)
+        support.write_fixture_file(
+            self.repo, project_files.TASK_PLAN, "sample-task-plan.md"
+        )
+        support.write_repo_file(
+            self.repo, project_files.IMPLEMENTATION_SUMMARY, "# Summary\n"
+        )
+        support.write_repo_file(
+            self.repo, f"{project_files.REVIEWS_DIR}/round-001-prompt.md", "prompt\n"
+        )
+        support.write_repo_file(
+            self.repo, project_files.DEPLOYMENT_CONFIG, '{"demo_server": {}}\n'
+        )
+
+        untracked = json.loads(
+            run_cli("--json", "git", "changed-files", cwd=self.repo).stdout
+        )["untracked"]
+
+        for name in (
+            project_files.WORKFLOW_STATE,
+            project_files.TASK_PLAN,
+            project_files.IMPLEMENTATION_SUMMARY,
+            f"{project_files.REVIEWS_DIR}/round-001-prompt.md",
+        ):
+            with self.subTest(name=name):
+                self.assertIn(name, untracked, f"{name} must be visible to Git")
+
+        # Machine-local state stays out of Git entirely.
+        self.assertNotIn(project_files.DEPLOYMENT_CONFIG, untracked)
+        self.assertNotIn(project_files.WORKFLOW_LOCK, untracked)
+
+    def test_committed_shared_state_survives_a_fresh_clone(self):
+        """The cross-device path: commit the branch, clone it, resume there."""
+        run_cli("state", "init", cwd=self.repo)
+        run_cli("state", "set", "task_id", "TASK-2026-042", cwd=self.repo)
+        support.write_fixture_file(
+            self.repo, project_files.TASK_PLAN, "sample-task-plan.md"
+        )
+        support.run_git(self.repo, "add", "--", project_files.AI_CONTEXT_DIR)
+        support.run_git(self.repo, "commit", "-q", "-m", "chore: checkpoint task")
+
+        clone = self.tmp / "second-computer"
+        support.run_git(self.tmp, "clone", "-q", str(self.repo), str(clone))
+
+        state = json.loads(run_cli("state", "show", cwd=clone).stdout)
+        self.assertEqual(state["task_id"], "TASK-2026-042")
+        self.assertEqual(run_cli("validate", "task-plan", cwd=clone).returncode, 0)
+        # The lock is machine-local, so it never travels with the branch.
+        self.assertFalse((clone / project_files.WORKFLOW_LOCK).exists())
+
+    def test_secrets_in_shared_ai_context_files_still_block(self):
+        token = support.synthetic_secret("sk_", "live_", "9a8b7c6d", "5e4f3g2h1i0j")
+        support.write_repo_file(
+            self.repo,
+            project_files.IMPLEMENTATION_SUMMARY,
+            f'Pasted config: api_key = "{token}"\n',
+        )
+        result = run_cli("--json", "security", "scan", cwd=self.repo)
+        self.assertEqual(result.returncode, 7, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["blocking"], 1)
+        self.assertEqual(
+            data["findings"][0]["path"], project_files.IMPLEMENTATION_SUMMARY
+        )
+        self.assertNotIn(token, result.stdout)
 
 
 if __name__ == "__main__":

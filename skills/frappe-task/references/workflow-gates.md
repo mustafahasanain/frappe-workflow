@@ -24,7 +24,7 @@ checks:
   Blocked).
 - Stage is `implementation` or `review_fixes`.
 - No unresolved blockers in state.
-- `.claude/implementation-summary.md` exists.
+- `docs/ai-context/implementation-summary.md` exists.
 - Secret scan over changed + staged + untracked files is clean.
 
 Judgment part (the skill must verify and attest in the summary):
@@ -32,8 +32,9 @@ Judgment part (the skill must verify and attest in the summary):
 - Every step's validation actually ran; required tests passed (real output).
 - Git diff contains only task-related changes.
 - No debug code or temporary files remain.
-- `PROJECT_CONTEXT.md` updated if architecture changed.
-- `FEATURE_CHANGELOG.md` **not yet** updated (that happens at finalization).
+- `docs/ai-context/PROJECT_CONTEXT.md` updated if architecture changed.
+- `docs/ai-context/FEATURE_CHANGELOG.md` **not yet** updated (that happens
+  at finalization).
 
 The bundle step then records the implementation fingerprint.
 
@@ -57,12 +58,13 @@ The bundle step then records the implementation fingerprint.
   recorded fingerprint [`FINAL_NO_FINGERPRINT`].
 - Current fingerprint still matches the approved one
   [`FINAL_FINGERPRINT_MISMATCH`].
-- `TASK_PLAN.md` exists [`FINAL_NO_PLAN`] and is structurally valid — the
-  full `validate task-plan` ruleset runs here too, so a malformed plan,
-  missing frontmatter, or a missing required section cannot slip through
-  [`FINAL_PLAN_INVALID`, plus the underlying `PLAN_*` errors].
-- `TASK_PLAN.md` status is `codex_approved` (or already `committed`)
-  [`FINAL_PLAN_STATUS`].
+- `docs/ai-context/TASK_PLAN.md` exists [`FINAL_NO_PLAN`] and is
+  structurally valid — the full `validate task-plan` ruleset runs here too,
+  so a malformed plan, missing frontmatter, or a missing required section
+  cannot slip through [`FINAL_PLAN_INVALID`, plus the underlying `PLAN_*`
+  errors].
+- `docs/ai-context/TASK_PLAN.md` status is `codex_approved` (or already
+  `committed`) [`FINAL_PLAN_STATUS`].
 - Secret scan clean [`FINAL_SECRET`].
 
 All checks accumulate: one run reports every problem, not just the first.
@@ -78,14 +80,16 @@ fingerprint; the finalization gate then fails with
 `[FINAL_FINGERPRINT_MISMATCH]` → transition `ready_for_commit →
 review_fixes` and run another review round.
 
-**Finalization-file exception:** documentation-only updates that cannot
-affect runtime behavior — `FEATURE_CHANGELOG.md`, `PROJECT_CONTEXT.md`,
-`TASK_PLAN.md` — are part of finalization itself. The fingerprint excludes
-exactly these three categorized files by construction (see
-`skills/codex-review/references/approval-invalidation.md`), so editing them
-after approval keeps the comparison stable while any other edit fails it.
-The git-finalization skill additionally checks `git diff --name-only` so a
-surprising post-approval edit is reported by name.
+**Shared-context exception:** the fingerprint excludes `docs/ai-context/`
+and `.claude/` entirely, by construction (see
+`skills/codex-review/references/approval-invalidation.md`). Documentation
+and workflow updates that cannot affect runtime behavior — the feature
+changelog, the project context, the plan, the workflow state, the
+implementation summary, the review history, the testing note — are part of
+finalization or bookkeeping, so editing them after approval keeps the
+comparison stable while any application edit fails it. The git-finalization
+skill additionally checks `git diff --name-only` so a surprising
+post-approval edit is reported by name.
 
 ## Deployment Gates
 

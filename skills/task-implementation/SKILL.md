@@ -19,7 +19,7 @@ done.
 
 ## Inputs
 
-- `TASK_PLAN.md` (authoritative step list and statuses).
+- `docs/ai-context/TASK_PLAN.md` (authoritative step list and statuses).
 - Workflow state (aggregate counts, blockers).
 - The repository.
 
@@ -27,7 +27,7 @@ done.
 
 - Implemented, validated changes; step statuses updated in the plan;
   state counts synced (`total_steps` / `completed_steps` / `blocked_steps`).
-- `.claude/implementation-summary.md` (template:
+- `docs/ai-context/implementation-summary.md` (template:
   `templates/review/IMPLEMENTATION_SUMMARY.md`) when all steps complete.
 
 ## Procedure
@@ -52,7 +52,7 @@ Gate before review: [references/completion-gate.md](references/completion-gate.m
 
 - Marking a step `Completed` before its validation succeeded.
 - Skipping a step silently, or marking partial work complete.
-- Updating `FEATURE_CHANGELOG.md` (finalization-only).
+- Updating `docs/ai-context/FEATURE_CHANGELOG.md` (finalization-only).
 - Unrecorded deviation from the plan: small technical deviations that
   preserve the objective are documented in the summary; business scope
   changes stop the work and go back to planning with the user's awareness.

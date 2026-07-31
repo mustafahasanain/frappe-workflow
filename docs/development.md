@@ -27,9 +27,9 @@ Two rules shape the layout: only `plugin.json` lives under
 | Skill | Owns |
 |---|---|
 | `frappe-task` | Argument parsing, routing, stage enforcement. Delegates everything else. |
-| `project-context` | `PROJECT_CONTEXT.md`: full analysis, incremental updates, the update decision. |
-| `feature-changelog` | `FEATURE_CHANGELOG.md`: baseline discovery, search, IDs, post-approval updates, index validation. |
-| `task-planning` | `TASK_PLAN.md` from a ready plan or a description; scope discipline. |
+| `project-context` | `docs/ai-context/PROJECT_CONTEXT.md`: full analysis, incremental updates, the update decision. |
+| `feature-changelog` | `docs/ai-context/FEATURE_CHANGELOG.md`: baseline discovery, search, IDs, post-approval updates, index validation. |
+| `task-planning` | `docs/ai-context/TASK_PLAN.md` from a ready plan or a description; scope discipline. |
 | `task-implementation` | Executing steps, per-step validation, blockers, the summary, the completion gate. |
 | `codex-review` | Bundles, result parsing, the fix loop, fingerprint-based invalidation. |
 | `git-finalization` | Finalization gate, documentation timing, commit message, staging, verification. |
@@ -48,7 +48,7 @@ they exist once.
 |---|---|
 | `core/environment.py` | Bench/app/Site/Git detection; `run_bench_list_apps` is the single injectable seam for tests |
 | `core/workflow_state.py` | Schema, transition table, atomic writes, blockers |
-| `core/project_files.py` | Managed paths, the `.gitignore` block, a minimal frontmatter parser |
+| `core/project_files.py` | Managed paths (the single source of truth for every managed location), the `.gitignore` block, legacy-layout migration, a minimal frontmatter parser |
 | `core/feature_registry.py` | Index/entry parsing, search scoring, next-ID, registry validation |
 | `core/git_checks.py` | Read-only Git inspection and the implementation fingerprint |
 | `core/validators.py` | The six validators, including both gates |
@@ -74,9 +74,17 @@ Discovery from `tests/` puts that directory on `sys.path`, which is how
 
 `tests/support.py` provides the seams: `make_bench()` copies
 `tests/fixtures/sample-bench/` into a temp directory and `git init`s the
-app, `init_repo()` builds a throwaway repository, and `GIT_ENV` pins the
-Git identity while neutralizing the user's global and system Git config so
+app, `init_repo()` builds a throwaway repository, `write_repo_file()` and
+`write_fixture_file()` place a managed file at a `project_files` constant
+(creating `docs/ai-context/` on the way), and `GIT_ENV` pins the Git
+identity while neutralizing the user's global and system Git config so
 fixtures behave identically on every machine.
+
+Tests address managed files through the `project_files` constants rather
+than path literals, so the layout is defined in exactly one place. The only
+deliberate exceptions are the legacy-migration tests, which must write the
+old paths, and the help-output tests, which assert the old locations are
+*absent*.
 
 Fixture files (`sample-project-context.md`,
 `sample-feature-changelog.md`, `sample-task-plan.md`,

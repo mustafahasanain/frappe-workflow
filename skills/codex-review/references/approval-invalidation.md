@@ -13,16 +13,22 @@ Computed by `bin/frappe-workflow review fingerprint`
 - sorted names **and contents** of untracked non-ignored files.
 
 No timestamps, stable path order → identical tree ⇒ identical fingerprint;
-any content change ⇒ different fingerprint. Two categories are outside the
-fingerprint by construction:
+any content change ⇒ different fingerprint. The fingerprint represents
+**application implementation changes only**, so these are outside it by
+construction:
 
-- Ignored files, and the entire `.claude/` directory (excluded by
-  construction, independent of `.gitignore`) — state updates and review
-  files never invalidate anything.
-- The three categorized finalization files (`TASK_PLAN.md`,
-  `FEATURE_CHANGELOG.md`, `PROJECT_CONTEXT.md`), excluded via Git
-  pathspecs — so post-approval documentation finalization keeps the
-  approval valid.
+- Ignored files.
+- The entire `docs/ai-context/` directory — the plan, the workflow state,
+  the implementation summary, the review history, the testing note, and the
+  AI documentation. These are tracked by Git for cross-device continuation,
+  but they are not application behavior, so writing them never invalidates
+  an approval. Untracked files inside the directory are excluded too.
+- The entire `.claude/` directory — machine-local state.
+
+Both directories are excluded by Git pathspec **and** in the untracked-file
+scan, independently of `.gitignore`, so the rule holds even in a repository
+whose managed block is missing. An untracked application file outside those
+two directories still changes the fingerprint, as it must.
 
 ## Recorded When
 
@@ -48,18 +54,25 @@ bin/frappe-workflow state transition review_fixes --reason "approval invalidated
 
 then the fix loop produces a new round.
 
-## Finalization-File Exception
+## Shared-Context Exception
 
-Documentation-only finalization edits do not require re-review **only**
-when both hold:
+Documentation and workflow edits do not require re-review **only** when
+both hold:
 
-1. The files are exactly the categorized finalization files:
-   `FEATURE_CHANGELOG.md`, `PROJECT_CONTEXT.md`, `TASK_PLAN.md`.
-2. They cannot affect application behavior (they are documentation).
+1. The files are under `docs/ai-context/` — in practice
+   `docs/ai-context/FEATURE_CHANGELOG.md`,
+   `docs/ai-context/PROJECT_CONTEXT.md`, `docs/ai-context/TASK_PLAN.md`,
+   `docs/ai-context/task-workflow.json`,
+   `docs/ai-context/implementation-summary.md`,
+   `docs/ai-context/testing-task-ar.md`, and `docs/ai-context/reviews/`.
+2. They cannot affect application behavior.
 
-The fingerprint already excludes exactly these three paths, so the
-deterministic comparison enforces this automatically: edits to them keep
-the fingerprint stable, edits to **any** other file change it and fail the
-finalization gate. The git-finalization skill additionally sanity-checks
+The fingerprint already excludes that directory, so the deterministic
+comparison enforces this automatically: edits inside it keep the
+fingerprint stable, edits to **any** application file change it and fail
+the finalization gate. Excluding the directory from the *fingerprint* is
+not the same as excluding it from *security scanning* — the shared files
+are still scanned for accidentally pasted secrets before staging and
+completion. The git-finalization skill additionally sanity-checks
 `git diff --name-only` so a surprising post-approval edit is reported by
 name, not just as a hash mismatch.

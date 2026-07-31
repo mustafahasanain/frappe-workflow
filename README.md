@@ -17,14 +17,17 @@ marketplace.
 
 ## What It Does
 
-- **Understands the application** — builds `PROJECT_CONTEXT.md`, a concise
+- **Understands the application** — builds
+  `docs/ai-context/PROJECT_CONTEXT.md`, a concise
   navigation and architecture map, so future work does not start by
   rereading the repository.
-- **Knows what already exists** — maintains `FEATURE_CHANGELOG.md`, a
+- **Knows what already exists** — maintains
+  `docs/ai-context/FEATURE_CHANGELOG.md`, a
   functional feature registry searched before every plan, so a request that
   is really an extension of existing behavior is treated as one.
 - **Plans before it builds** — turns a prepared plan or a plain description
-  into a validated, repository-aware `TASK_PLAN.md` with verifiable steps.
+  into a validated, repository-aware `docs/ai-context/TASK_PLAN.md` with
+  verifiable steps.
 - **Implements with gates** — one step at a time, each validated before it
   counts as done; blockers are recorded, never skipped.
 - **Reviews with Codex** — generates the review prompt, parses the verdict,
@@ -143,16 +146,23 @@ repositories.
 
 ```text
 <app-repository>/
-├── PROJECT_CONTEXT.md            tracked
-├── FEATURE_CHANGELOG.md          tracked
-├── TASK_PLAN.md                  tracked
+├── docs/ai-context/              tracked — shared with every computer
+│   ├── PROJECT_CONTEXT.md
+│   ├── FEATURE_CHANGELOG.md
+│   ├── TASK_PLAN.md
+│   ├── task-workflow.json
+│   ├── implementation-summary.md
+│   ├── testing-task-ar.md
+│   └── reviews/round-NNN-{prompt,result}.md
 └── .claude/                      local, ignored via a managed .gitignore block
-    ├── task-workflow.json
-    ├── deployment.local.json
-    ├── implementation-summary.md
-    ├── testing-task-ar.md
-    └── reviews/round-NNN-{prompt,result}.md
+    ├── deployment.local.json     your per-computer deployment config
+    └── task-workflow.lock        advisory write lock
 ```
+
+Everything under `docs/ai-context/` is Git-trackable on purpose: commit and
+push the working branch, and an unfinished task continues on another
+computer after you pull that branch there. Nothing is synchronized
+automatically — the plugin never commits, pushes, or pulls on its own.
 
 The `.gitignore` block is managed idempotently between marker comments; the
 rest of your `.gitignore` is never touched. See

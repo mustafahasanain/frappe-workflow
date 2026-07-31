@@ -51,12 +51,12 @@ Generate only two labeled parts, with Arabic content:
 
 ## Storage and Closing
 
-- Save the generated content to `.claude/testing-task-ar.md`.
+- Save the generated content to `docs/ai-context/testing-task-ar.md`.
 - Record it and close the workflow:
 
 ```bash
 bin/frappe-workflow state set testing_task.status generated
-bin/frappe-workflow state set testing_task.path .claude/testing-task-ar.md
+bin/frappe-workflow state set testing_task.path docs/ai-context/testing-task-ar.md
 bin/frappe-workflow state set testing_task.generated_at <UTC timestamp>
 bin/frappe-workflow state transition completed --reason "testing task generated"
 ```

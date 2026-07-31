@@ -1,9 +1,13 @@
-"""Atomic, validated workflow state stored at .claude/task-workflow.json.
+"""Atomic, validated workflow state stored in docs/ai-context/.
 
-The state file is the primary logical workflow state; Git only verifies that
-the recorded state is still truthful. All writes are atomic (temp file in the
-same directory + fsync + os.replace) and guarded by an advisory fcntl lock
-where the platform provides one.
+The state file is the primary logical workflow state and is tracked by Git so
+an active task can continue across multiple development machines.
+
+Git also verifies that the recorded state is still truthful. All writes are
+atomic using a temporary file in the same directory, fsync, and os.replace.
+
+The advisory lock remains machine-local under ``.claude/`` and is never part
+of the shared workflow state.
 """
 
 from __future__ import annotations
@@ -16,9 +20,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from . import project_files
+
 SCHEMA_VERSION = 1
 
-STATE_RELATIVE_PATH = Path(".claude") / "task-workflow.json"
+STATE_RELATIVE_PATH = Path(project_files.WORKFLOW_STATE)
+LOCK_RELATIVE_PATH = Path(project_files.WORKFLOW_LOCK)
 
 STAGES = (
     "planning",
@@ -135,52 +142,74 @@ REQUIRED_KEYS = (
 
 
 def validate_state(state: dict) -> list[str]:
-    """Return a list of validation error strings (empty when valid)."""
+    """Return validation error strings, or an empty list when valid."""
     errors = []
+
     if not isinstance(state, dict):
         return ["state: not a JSON object [STATE_NOT_OBJECT]"]
+
     for key in REQUIRED_KEYS:
         if key not in state:
             errors.append(f"state: missing required key '{key}' [STATE_MISSING_KEY]")
+
     if errors:
         return errors
+
     if state["schema_version"] != SCHEMA_VERSION:
         errors.append(
             f"state: unsupported schema_version {state['schema_version']!r}, "
             f"expected {SCHEMA_VERSION} [STATE_SCHEMA_VERSION]"
         )
+
     if state["current_stage"] not in STAGES:
         errors.append(
-            f"state: invalid current_stage {state['current_stage']!r} [STATE_INVALID_STAGE]"
+            f"state: invalid current_stage "
+            f"{state['current_stage']!r} [STATE_INVALID_STAGE]"
         )
+
     if state["task_plan_status"] not in TASK_PLAN_STATUSES:
         errors.append(
             f"state: invalid task_plan_status {state['task_plan_status']!r} "
             "[STATE_INVALID_PLAN_STATUS]"
         )
+
     if not isinstance(state["blockers"], list):
         errors.append("state: blockers must be a list [STATE_BLOCKERS_TYPE]")
-    for section in ("implementation_status", "codex_review", "commit", "deployment", "testing_task"):
+
+    for section in (
+        "implementation_status",
+        "codex_review",
+        "commit",
+        "deployment",
+        "testing_task",
+    ):
         if not isinstance(state[section], dict):
             errors.append(f"state: {section} must be an object [STATE_SECTION_TYPE]")
-    # Stage/status consistency checks (cheap, conservative).
+
     stage = state["current_stage"]
+
     if stage in ("committed", "deployed", "deployment_skipped", "completed"):
         if state["commit"].get("status") != "created":
             errors.append(
                 f"state: stage '{stage}' requires commit.status 'created' "
                 "[STATE_STAGE_COMMIT_MISMATCH]"
             )
+
     if stage == "deployed" and state["deployment"].get("status") != "deployed":
         errors.append(
             "state: stage 'deployed' requires deployment.status 'deployed' "
             "[STATE_STAGE_DEPLOY_MISMATCH]"
         )
-    if stage == "deployment_skipped" and state["deployment"].get("status") != "skipped":
+
+    if (
+        stage == "deployment_skipped"
+        and state["deployment"].get("status") != "skipped"
+    ):
         errors.append(
-            "state: stage 'deployment_skipped' requires deployment.status 'skipped' "
-            "[STATE_STAGE_SKIP_MISMATCH]"
+            "state: stage 'deployment_skipped' requires deployment.status "
+            "'skipped' [STATE_STAGE_SKIP_MISMATCH]"
         )
+
     return errors
 
 
@@ -188,51 +217,75 @@ def state_path(repo_root: Path) -> Path:
     return Path(repo_root) / STATE_RELATIVE_PATH
 
 
+def lock_path(repo_root: Path) -> Path:
+    return Path(repo_root) / LOCK_RELATIVE_PATH
+
+
 def load_state(repo_root: Path) -> dict:
-    """Load and validate the state file. Raises StateError on any problem."""
+    """Load and validate the state file. Raise StateError on any problem."""
     path = state_path(repo_root)
+
     if not path.is_file():
         raise StateError(f"No workflow state found at {path} [STATE_MISSING]")
+
     try:
         raw = path.read_text(encoding="utf-8")
     except OSError as exc:
         raise StateError(f"Cannot read {path}: {exc} [STATE_UNREADABLE]") from exc
+
     try:
         state = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise StateError(f"Invalid JSON in {path}: {exc} [STATE_INVALID_JSON]") from exc
+        raise StateError(
+            f"Invalid JSON in {path}: {exc} [STATE_INVALID_JSON]"
+        ) from exc
+
     errors = validate_state(state)
+
     if errors:
         raise StateError("; ".join(errors))
+
     return state
 
 
 def save_state(repo_root: Path, state: dict) -> Path:
-    """Validate then atomically write the state file.
+    """Validate and atomically write the shared workflow state file.
 
-    Never leaves a partially written file: content is written to a temp file
-    in the same directory, fsynced, then renamed over the target.
+    Content is written to a temporary file in the same directory, fsynced,
+    and renamed over the target. The lock used during this operation remains
+    local under ``.claude/``.
     """
     errors = validate_state(state)
+
     if errors:
         raise StateError("Refusing to save invalid state: " + "; ".join(errors))
+
     state = copy.deepcopy(state)
     state["updated_at"] = utc_now()
 
     path = state_path(repo_root)
     path.parent.mkdir(parents=True, exist_ok=True)
+
+    local_lock_path = lock_path(repo_root)
+    local_lock_path.parent.mkdir(parents=True, exist_ok=True)
+
     payload = json.dumps(state, indent=2, ensure_ascii=False) + "\n"
 
-    lock_handle = _acquire_lock(path.parent / ".task-workflow.lock")
+    lock_handle = _acquire_lock(local_lock_path)
+
     try:
         fd, tmp_name = tempfile.mkstemp(
-            dir=str(path.parent), prefix=".task-workflow.", suffix=".tmp"
+            dir=str(path.parent),
+            prefix=".task-workflow.",
+            suffix=".tmp",
         )
+
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as handle:
                 handle.write(payload)
                 handle.flush()
                 os.fsync(handle.fileno())
+
             os.replace(tmp_name, path)
         except BaseException:
             try:
@@ -242,15 +295,17 @@ def save_state(repo_root: Path, state: dict) -> Path:
             raise
     finally:
         _release_lock(lock_handle)
+
     return path
 
 
-def _acquire_lock(lock_path: Path):
+def _acquire_lock(lock_file: Path):
     try:
         import fcntl
-    except ImportError:  # non-POSIX platform: proceed without a lock
+    except ImportError:
         return None
-    handle = open(lock_path, "w", encoding="utf-8")
+
+    handle = open(lock_file, "w", encoding="utf-8")
     fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
     return handle
 
@@ -258,6 +313,7 @@ def _acquire_lock(lock_path: Path):
 def _release_lock(handle) -> None:
     if handle is None:
         return
+
     try:
         import fcntl
 
@@ -267,14 +323,19 @@ def _release_lock(handle) -> None:
 
 
 def init_state(repo_root: Path, overwrite: bool = False) -> dict:
-    """Create a fresh default state file. Refuses to overwrite an existing one
-    unless *overwrite* is set (used by the controlled reset)."""
+    """Create a fresh state file.
+
+    Refuse to overwrite an existing state unless ``overwrite`` is enabled by
+    the controlled reset operation.
+    """
     path = state_path(repo_root)
+
     if path.exists() and not overwrite:
         raise StateError(
             f"Workflow state already exists at {path}; refusing to overwrite. "
             "Use the reset action for a controlled reset. [STATE_EXISTS]"
         )
+
     state = default_state()
     save_state(repo_root, state)
     return state
@@ -286,73 +347,94 @@ def transition(
     reason: str = "",
     detail: Optional[dict] = None,
 ) -> dict:
-    """Move the persisted state to *new_stage* if the transition is allowed."""
+    """Move the persisted state when the requested transition is allowed."""
     if new_stage not in STAGES:
-        raise TransitionError(f"Unknown stage '{new_stage}' [TRANSITION_UNKNOWN_STAGE]")
+        raise TransitionError(
+            f"Unknown stage '{new_stage}' [TRANSITION_UNKNOWN_STAGE]"
+        )
+
     state = load_state(repo_root)
     current = state["current_stage"]
+
     if new_stage not in ALLOWED_TRANSITIONS.get(current, set()):
         raise TransitionError(
             f"Transition '{current}' -> '{new_stage}' is not allowed "
             "[TRANSITION_REJECTED]"
         )
+
     record = {
         "from": current,
         "to": new_stage,
         "at": utc_now(),
         "reason": reason or "",
     }
+
     if detail:
         record.update(detail)
+
     state["current_stage"] = new_stage
     state.setdefault("transition_history", []).append(record)
     save_state(repo_root, state)
     return state
 
 
-# Fields that must not be written directly: each has a dedicated operation
-# that enforces a rule a raw assignment would bypass.
 IMMUTABLE_PATHS = {
     "schema_version": "the schema version is fixed by the plugin",
-    "current_stage": "use 'state transition <stage>' so the transition table is enforced",
+    "current_stage": (
+        "use 'state transition <stage>' so the transition table is enforced"
+    ),
     "blockers": "use 'state blocker add' / 'state blocker clear'",
-    "transition_history": "transition history is append-only and managed by the engine",
+    "transition_history": (
+        "transition history is append-only and managed by the engine"
+    ),
 }
 
 
 def set_field(repo_root: Path, dotted_path: str, value) -> dict:
-    """Set one **existing** state field atomically.
+    """Set one existing state field atomically.
 
-    Only paths already present in the schema may be set, so a typo creates
-    an error rather than a junk key. Fields listed in
-    :data:`IMMUTABLE_PATHS` are refused because a dedicated operation
-    enforces a rule that a raw assignment would bypass.
+    Only schema paths that already exist may be changed. Immutable fields
+    require their dedicated controlled operations.
     """
     parts = dotted_path.split(".")
+
     if parts[0] in IMMUTABLE_PATHS:
         raise StateError(
-            f"'{dotted_path}' cannot be set directly: {IMMUTABLE_PATHS[parts[0]]} "
-            "[STATE_IMMUTABLE_FIELD]"
+            f"'{dotted_path}' cannot be set directly: "
+            f"{IMMUTABLE_PATHS[parts[0]]} [STATE_IMMUTABLE_FIELD]"
         )
+
     state = load_state(repo_root)
     cursor = state
+
     for part in parts[:-1]:
         if not isinstance(cursor, dict) or part not in cursor:
             raise StateError(
                 f"Unknown state path '{dotted_path}' [STATE_UNKNOWN_PATH]"
             )
+
         cursor = cursor[part]
+
     leaf = parts[-1]
+
     if not isinstance(cursor, dict) or leaf not in cursor:
-        raise StateError(f"Unknown state path '{dotted_path}' [STATE_UNKNOWN_PATH]")
+        raise StateError(
+            f"Unknown state path '{dotted_path}' [STATE_UNKNOWN_PATH]"
+        )
+
     cursor[leaf] = value
-    save_state(repo_root, state)  # re-validates before writing
+    save_state(repo_root, state)
     return state
 
 
 def add_blocker(repo_root: Path, message: str) -> dict:
     state = load_state(repo_root)
-    state["blockers"].append({"message": message, "recorded_at": utc_now()})
+    state["blockers"].append(
+        {
+            "message": message,
+            "recorded_at": utc_now(),
+        }
+    )
     save_state(repo_root, state)
     return state
 
