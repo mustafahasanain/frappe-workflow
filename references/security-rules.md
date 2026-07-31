@@ -45,7 +45,7 @@ Value: abc...xyz
 
 The scan covers changed, staged, and untracked files. `docs/ai-context/` is
 excluded from the *implementation fingerprint*, never from *scanning*: the
-plan, the implementation summary, the review bundle, and the testing note
+plan, the implementation summary, and the review bundle
 routinely quote configuration and command output, so they are exactly where
 a pasted credential is most likely to land. A blocking finding in one of
 them stops review, staging, and completion like any other.

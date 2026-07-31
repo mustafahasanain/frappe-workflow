@@ -19,6 +19,12 @@ Files. The staging set is exactly:
 `bin/frappe-workflow project paths` prints these locations
 (`tracked_shared_files`) so no path is ever typed from memory.
 
+The Arabic testing task is not in that set and never will be: `testing`
+prints its title and description in the terminal and writes no file, so
+there is nothing to stage for it. `docs/ai-context/task-workflow.json` may
+still be committed later, which is what preserves the completed workflow
+state across computers.
+
 ## Generate Exact Commands
 
 ```bash

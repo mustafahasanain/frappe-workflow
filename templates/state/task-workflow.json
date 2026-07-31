@@ -39,7 +39,6 @@
   },
   "testing_task": {
     "status": "pending",
-    "path": null,
     "generated_at": null
   },
   "blockers": [],

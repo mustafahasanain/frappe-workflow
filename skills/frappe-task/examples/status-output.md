@@ -40,6 +40,18 @@ Consistency:
   ✓ workflow state schema valid
 ```
 
+Once the `testing` action has run, the same line reports the recorded
+status and timestamp from `testing_task` — and never a file path, because
+the Arabic title and description are printed in the terminal and are not
+saved anywhere:
+
+```text
+Testing task: generated (2026-07-31T13:09:37Z)
+```
+
+A state file written by an older plugin version may still carry a
+`testing_task.path`; ignore it and never print it.
+
 When something is inconsistent, the Consistency section names it precisely:
 
 ```text

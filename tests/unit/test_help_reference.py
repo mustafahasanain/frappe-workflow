@@ -123,10 +123,20 @@ class HelpDocumentTests(unittest.TestCase):
             ".claude/task-workflow.json",
             ".claude/implementation-summary.md",
             ".claude/testing-task-ar.md",
+            "docs/ai-context/testing-task-ar.md",
             ".claude/reviews",
         ):
             with self.subTest(stale=stale):
                 self.assertNotIn(stale, self.block)
+
+    def test_testing_action_is_described_as_terminal_output(self):
+        """Help must not promise a file the plugin no longer writes."""
+        self.assertNotIn("testing-task-ar", self.block)
+        description = re.search(
+            r"^  testing {2,}(.+?)\n\n", self.block, re.S | re.M
+        ).group(1)
+        self.assertRegex(description, r"print")
+        self.assertRegex(description, r"[Nn]othing is saved to a file")
 
     def test_cross_device_continuation_is_explained(self):
         self.assertIn(project_files.AI_CONTEXT_DIR, self.block)

@@ -19,7 +19,7 @@ construction:
 
 - Ignored files.
 - The entire `docs/ai-context/` directory — the plan, the workflow state,
-  the implementation summary, the review history, the testing note, and the
+  the implementation summary, the review history, and the
   AI documentation. These are tracked by Git for cross-device continuation,
   but they are not application behavior, so writing them never invalidates
   an approval. Untracked files inside the directory are excluded too.
@@ -63,8 +63,8 @@ both hold:
    `docs/ai-context/FEATURE_CHANGELOG.md`,
    `docs/ai-context/PROJECT_CONTEXT.md`, `docs/ai-context/TASK_PLAN.md`,
    `docs/ai-context/task-workflow.json`,
-   `docs/ai-context/implementation-summary.md`,
-   `docs/ai-context/testing-task-ar.md`, and `docs/ai-context/reviews/`.
+   `docs/ai-context/implementation-summary.md`, and
+   `docs/ai-context/reviews/`.
 2. They cannot affect application behavior.
 
 The fingerprint already excludes that directory, so the deterministic

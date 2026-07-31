@@ -91,6 +91,96 @@ class StateLifecycleTests(unittest.TestCase):
         self.assertEqual(loaded["task_title"], "Add Telegram reporting")
 
 
+class TestingTaskSectionTests(unittest.TestCase):
+    """The testing task is printed, not saved — the state reflects that."""
+
+    def setUp(self):
+        self.repo = support.make_temp_dir()
+        self.addCleanup(shutil.rmtree, self.repo, True)
+
+    def test_default_state_tracks_only_status_and_timestamp(self):
+        section = workflow_state.default_state()["testing_task"]
+        self.assertEqual(sorted(section), ["generated_at", "status"])
+        self.assertEqual(section["status"], "pending")
+        self.assertIsNone(section["generated_at"])
+
+    def test_new_state_file_has_no_testing_task_path(self):
+        workflow_state.init_state(self.repo)
+        raw = workflow_state.state_path(self.repo).read_text(encoding="utf-8")
+        self.assertNotIn("testing-task-ar", raw)
+        self.assertNotIn(
+            "path", json.loads(raw)["testing_task"]
+        )
+
+    def test_state_template_matches_the_default_state(self):
+        template = json.loads(
+            (support.PLUGIN_ROOT / "templates/state/task-workflow.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            template["testing_task"],
+            {"status": "pending", "generated_at": None},
+        )
+
+    def test_generated_status_and_timestamp_are_recorded(self):
+        workflow_state.init_state(self.repo)
+        workflow_state.set_field(self.repo, "testing_task.status", "generated")
+        state = workflow_state.set_field(
+            self.repo, "testing_task.generated_at", "2026-07-31T13:09:37Z"
+        )
+        self.assertEqual(
+            state["testing_task"],
+            {"status": "generated", "generated_at": "2026-07-31T13:09:37Z"},
+        )
+        self.assertEqual(
+            workflow_state.load_state(self.repo)["testing_task"]["generated_at"],
+            "2026-07-31T13:09:37Z",
+        )
+
+    def test_setting_a_testing_task_path_is_rejected_on_a_new_state(self):
+        workflow_state.init_state(self.repo)
+        with self.assertRaises(workflow_state.StateError) as ctx:
+            workflow_state.set_field(
+                self.repo, "testing_task.path", "docs/ai-context/testing-task-ar.md"
+            )
+        self.assertIn("STATE_UNKNOWN_PATH", str(ctx.exception))
+
+    def test_legacy_state_with_a_testing_task_path_still_loads(self):
+        """Backward compatibility: an old state file must not break."""
+        legacy = workflow_state.default_state()
+        legacy["testing_task"] = {
+            "status": "generated",
+            "path": "docs/ai-context/testing-task-ar.md",
+            "generated_at": "2026-07-01T10:00:00Z",
+        }
+        self.assertEqual(workflow_state.validate_state(legacy), [])
+
+        workflow_state.save_state(self.repo, legacy)
+        loaded = workflow_state.load_state(self.repo)
+        self.assertEqual(loaded["testing_task"]["status"], "generated")
+        # The obsolete key is carried along untouched, never acted on.
+        self.assertEqual(
+            loaded["testing_task"]["path"], "docs/ai-context/testing-task-ar.md"
+        )
+
+    def test_legacy_state_keeps_working_through_a_transition(self):
+        legacy = workflow_state.default_state()
+        legacy["testing_task"]["path"] = "docs/ai-context/testing-task-ar.md"
+        legacy["commit"] = {"status": "created", "hash": "abc1234", "subject": "feat: x"}
+        legacy["deployment"]["status"] = "skipped"
+        legacy["current_stage"] = "deployment_skipped"
+        workflow_state.save_state(self.repo, legacy)
+
+        state = workflow_state.set_field(self.repo, "testing_task.status", "generated")
+        self.assertEqual(state["testing_task"]["status"], "generated")
+        state = workflow_state.transition(self.repo, "completed")
+        self.assertEqual(state["current_stage"], "completed")
+        self.assertEqual(
+            state["testing_task"]["path"], "docs/ai-context/testing-task-ar.md"
+        )
+
+
 class TransitionTests(unittest.TestCase):
     def setUp(self):
         self.repo = support.make_temp_dir()

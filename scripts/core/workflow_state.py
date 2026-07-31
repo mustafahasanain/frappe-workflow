@@ -116,9 +116,12 @@ def default_state() -> dict:
             "server_commit": None,
             "deployed_at": None,
         },
+        # The Arabic testing task is printed in the terminal, never saved, so
+        # only the fact and the time of generation are tracked. States written
+        # by older plugin versions may still carry a `path` key; it is ignored
+        # rather than rejected (see validate_state).
         "testing_task": {
             "status": "pending",
-            "path": None,
             "generated_at": None,
         },
         "blockers": [],
@@ -142,7 +145,13 @@ REQUIRED_KEYS = (
 
 
 def validate_state(state: dict) -> list[str]:
-    """Return validation error strings, or an empty list when valid."""
+    """Return validation error strings, or an empty list when valid.
+
+    Extra keys are never an error, which is what keeps older state files
+    loadable: a ``testing_task.path`` written before the testing task became
+    terminal-only output is carried along untouched and ignored by every
+    reader. Nothing regenerates it, and new states never contain it.
+    """
     errors = []
 
     if not isinstance(state, dict):

@@ -23,7 +23,6 @@ genuinely machine-specific state stays under `.claude/`.
 │       ├── TASK_PLAN.md                tracked
 │       ├── task-workflow.json          tracked (workflow state)
 │       ├── implementation-summary.md   tracked
-│       ├── testing-task-ar.md          tracked
 │       └── reviews/                    tracked
 │           ├── round-001-prompt.md
 │           └── round-001-result.md
@@ -61,9 +60,13 @@ would break cross-device continuation.
 | `docs/ai-context/task-workflow.json` | `start` (or `state init`) | Every stage/status change, atomically | By confirmed `reset` only | Yes, confirmed `reset` |
 | `docs/ai-context/implementation-summary.md` | Completion gate preparation | Each review-fix round | New task | Confirmed `reset` |
 | `docs/ai-context/reviews/round-NNN-*.md` | `review` / `apply-review` | Never (append-only history; original results preserved) | — | Confirmed `reset` |
-| `docs/ai-context/testing-task-ar.md` | `testing` | Regenerated on request | New task | Confirmed `reset` |
 | `.claude/deployment.local.json` | By the **user** from the example template | By the user | — | Never deleted by the plugin |
 | `.claude/task-workflow.lock` | Automatically, on the first state write | Held only for the duration of a write | — | Never deleted by `reset`; safe to delete manually |
+
+The `testing` action creates nothing. It prints the Arabic title and
+description in the terminal for the user to copy, and records only
+`testing_task.status` and `testing_task.generated_at` in the workflow
+state.
 
 `init` creates only `docs/ai-context/PROJECT_CONTEXT.md` and
 `docs/ai-context/FEATURE_CHANGELOG.md` (plus the directory and the managed
@@ -94,6 +97,20 @@ full review history, and then repairs the managed `.gitignore` block. It is
 idempotent, never touches `.claude/deployment.local.json`, and aborts
 without moving anything when a path exists in both layouts.
 
+## Legacy Testing-Task Files
+
+Plugin versions that saved the Arabic testing task left either
+`.claude/testing-task-ar.md` or `docs/ai-context/testing-task-ar.md` in the
+application. Such a file is a **legacy artifact**, not a workflow-managed
+file: the plugin never creates, updates, reads, stages, or migrates it, and
+`reset` does not delete it. It is left exactly where it is; remove it
+yourself if you no longer want it. The current `testing` action writes no
+file at all.
+
+The same applies inside the workflow state: a `testing_task.path` written
+by an older version still loads and is simply ignored — it is never
+printed, followed, or regenerated. New state files do not contain it.
+
 ## Archival
 
 Review rounds are append-only within a task. When a new task starts after a
@@ -106,4 +123,5 @@ part of starting fresh (never silently).
 Git changes, Git commits, application source files,
 `docs/ai-context/PROJECT_CONTEXT.md`,
 `docs/ai-context/FEATURE_CHANGELOG.md`, `.claude/deployment.local.json`,
-repository history.
+`.claude/task-workflow.lock`, a legacy `testing-task-ar.md` from an older
+plugin version, repository history.

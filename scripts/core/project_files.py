@@ -27,8 +27,15 @@ FEATURE_CHANGELOG = f"{AI_CONTEXT_DIR}/FEATURE_CHANGELOG.md"
 TASK_PLAN = f"{AI_CONTEXT_DIR}/TASK_PLAN.md"
 WORKFLOW_STATE = f"{AI_CONTEXT_DIR}/task-workflow.json"
 IMPLEMENTATION_SUMMARY = f"{AI_CONTEXT_DIR}/implementation-summary.md"
-TESTING_TASK_AR = f"{AI_CONTEXT_DIR}/testing-task-ar.md"
 REVIEWS_DIR = f"{AI_CONTEXT_DIR}/reviews"
+
+# The Arabic testing task is terminal output only: the `testing` action
+# prints the title and description for the user to copy, and writes no file.
+# There is deliberately no path constant for it. Older plugin versions did
+# save `.claude/testing-task-ar.md` (and later
+# `docs/ai-context/testing-task-ar.md`); such files are legacy artifacts —
+# never created, read, staged, migrated, or deleted by the plugin, and left
+# exactly where they are.
 
 CLAUDE_DIR = ".claude"
 DEPLOYMENT_CONFIG = f"{CLAUDE_DIR}/deployment.local.json"
@@ -42,12 +49,11 @@ TRACKED_SHARED_FILES = (
     TASK_PLAN,
     WORKFLOW_STATE,
     IMPLEMENTATION_SUMMARY,
-    TESTING_TASK_AR,
 )
 
 # Files created by `init` / the project documentation skills. The task-level
-# artifacts (plan, state, summary, testing task, reviews) are deliberately
-# absent: `init` never starts a task.
+# artifacts (plan, state, summary, reviews) are deliberately absent: `init`
+# never starts a task.
 INIT_CREATED_FILES = (
     PROJECT_CONTEXT,
     FEATURE_CHANGELOG,
@@ -55,12 +61,13 @@ INIT_CREATED_FILES = (
 
 # Active-task artifacts a confirmed `reset` clears. PROJECT_CONTEXT.md,
 # FEATURE_CHANGELOG.md, and the machine-local deployment config are not here
-# and must never be removed by a reset.
+# and must never be removed by a reset. A legacy `testing-task-ar.md` left
+# by an older plugin version is not an active workflow file either, so reset
+# leaves it alone.
 RESET_PATHS = (
     WORKFLOW_STATE,
     TASK_PLAN,
     IMPLEMENTATION_SUMMARY,
-    TESTING_TASK_AR,
     REVIEWS_DIR,
 )
 
@@ -76,7 +83,8 @@ GITIGNORE_ENTRIES = (
 
 # Entries earlier plugin versions wrote into the managed block. They are
 # listed only so the block repair can recognize and drop them; nothing else
-# should reference them.
+# should reference them. `.claude/testing-task-ar.md` is kept here for that
+# single purpose — the plugin no longer produces such a file at all.
 LEGACY_GITIGNORE_ENTRIES = (
     f"{CLAUDE_DIR}/task-workflow.json",
     f"{CLAUDE_DIR}/implementation-summary.md",
@@ -85,14 +93,15 @@ LEGACY_GITIGNORE_ENTRIES = (
 )
 
 # Old layout → new layout. Used by the migration helper and by nothing else:
-# no runtime code may read from an old path.
+# no runtime code may read from an old path. Only files the plugin still
+# manages are migrated; `.claude/testing-task-ar.md` is intentionally absent
+# because no testing-task file is part of the workflow any more.
 LEGACY_PATHS: tuple[tuple[str, str], ...] = (
     ("PROJECT_CONTEXT.md", PROJECT_CONTEXT),
     ("FEATURE_CHANGELOG.md", FEATURE_CHANGELOG),
     ("TASK_PLAN.md", TASK_PLAN),
     (f"{CLAUDE_DIR}/task-workflow.json", WORKFLOW_STATE),
     (f"{CLAUDE_DIR}/implementation-summary.md", IMPLEMENTATION_SUMMARY),
-    (f"{CLAUDE_DIR}/testing-task-ar.md", TESTING_TASK_AR),
     (f"{CLAUDE_DIR}/reviews", REVIEWS_DIR),
 )
 

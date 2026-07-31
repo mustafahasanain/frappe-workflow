@@ -92,7 +92,6 @@ class FingerprintTests(unittest.TestCase):
         for relative in (
             project_files.WORKFLOW_STATE,
             project_files.IMPLEMENTATION_SUMMARY,
-            project_files.TESTING_TASK_AR,
             f"{project_files.REVIEWS_DIR}/round-001-result.md",
         ):
             support.write_repo_file(self.repo, relative, "original\n")
@@ -103,7 +102,6 @@ class FingerprintTests(unittest.TestCase):
         for relative in (
             project_files.WORKFLOW_STATE,
             project_files.IMPLEMENTATION_SUMMARY,
-            project_files.TESTING_TASK_AR,
             f"{project_files.REVIEWS_DIR}/round-001-result.md",
         ):
             support.write_repo_file(self.repo, relative, "changed\n")

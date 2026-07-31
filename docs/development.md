@@ -34,7 +34,7 @@ Two rules shape the layout: only `plugin.json` lives under
 | `codex-review` | Bundles, result parsing, the fix loop, fingerprint-based invalidation. |
 | `git-finalization` | Finalization gate, documentation timing, commit message, staging, verification. |
 | `deployment` | Consent, preflight, ff-only pull, bench command matrix, verification. |
-| `testing-task` | The Arabic testing task and closing the workflow. |
+| `testing-task` | The Arabic testing task printed in the terminal (no file is written), and closing the workflow. |
 
 Keep `SKILL.md` files short. Each states when to use it, inputs, outputs,
 preconditions, stopping conditions, and prohibitions, then links to its own

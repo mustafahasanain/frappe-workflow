@@ -148,22 +148,40 @@ deployment skill
 ## `testing`
 
 Requires stage `deployed` or `deployment_skipped`. Delegate to the
-testing-task skill: Arabic title + description from approved behavior,
-saved to `docs/ai-context/testing-task-ar.md`, then
-`state transition completed`. When deployment was skipped, show the
-English skip warning separately (never inside the Arabic text).
+testing-task skill: Arabic title + description from the approved behavior,
+**printed in the terminal** in this shape so the user can copy them into
+their task-management system —
+
+```text
+العنوان:
+<Arabic title>
+
+الوصف:
+<Arabic description>
+```
+
+— then `CLI state set testing_task.status generated`,
+`CLI state set testing_task.generated_at <UTC timestamp>`, and
+`state transition completed`. When deployment was skipped, show the English
+skip warning separately, after the Arabic text (never inside it).
+
+No file is written: there is no `testing-task-ar.md` and no replacement for
+it. If the user asks for the text again once the stage is `completed`,
+reprint it and change nothing.
 
 ## `reset`
 
 1. Show exactly what will be cleared:
    `docs/ai-context/task-workflow.json`, `docs/ai-context/TASK_PLAN.md`,
    `docs/ai-context/implementation-summary.md`,
-   `docs/ai-context/testing-task-ar.md`, `docs/ai-context/reviews/`.
+   `docs/ai-context/reviews/`.
    `CLI project paths` prints this list as `reset_paths`.
 2. State what is **never** touched: Git changes, commits, app files,
    `docs/ai-context/PROJECT_CONTEXT.md`,
    `docs/ai-context/FEATURE_CHANGELOG.md`,
-   `.claude/deployment.local.json`, repository history.
+   `.claude/deployment.local.json`, `.claude/task-workflow.lock`, a legacy
+   `testing-task-ar.md` left by an older plugin version, repository
+   history.
 3. Require explicit confirmation.
 4. On confirmation: `CLI state init --force` and remove only the listed
    generated files.

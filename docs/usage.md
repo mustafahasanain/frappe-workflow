@@ -21,7 +21,7 @@ how you resume after closing and reopening Claude Code.
 | `apply-review` | Process an `APPROVED` or `CHANGES_REQUIRED` result, record the review round, and route to `review_fixes` or `ready_for_commit` |
 | `commit` | Prepare the Conventional Commit and exact staging commands (executes only when you say so) |
 | `deploy` | Ask deploy-or-skip, then run the safe deployment procedure |
-| `testing` | Generate a concise Arabic testing-team title and description from the approved behavior |
+| `testing` | Generate a concise Arabic testing-team title and description from the approved behavior and print them in the terminal for copying — nothing is saved to a file |
 | `reset` | Controlled reset of active-task state after confirmation |
 | `help` | Print the canonical action list, stages, and workflow. Read-only |
 
@@ -79,6 +79,31 @@ integrations, jobs, reports, audit, error handling, phases, MVP scope, and
 deferred features. Only the MVP phase gets implementation steps in the
 current task — later phases become their own tasks.
 
+## The Arabic Testing Task
+
+`testing` closes the workflow. It writes **no file**: the title and
+description are printed straight into the Claude Code terminal, in this
+shape, ready to copy into your task-management system:
+
+```text
+العنوان:
+<Arabic title>
+
+الوصف:
+<Arabic description>
+```
+
+If deployment was skipped, the English warning that the changes are not in
+the testing environment yet is shown separately, after the Arabic text —
+never inside it.
+
+Only `testing_task.status` and `testing_task.generated_at` are recorded in
+`docs/ai-context/task-workflow.json`; the Arabic text itself is not stored
+anywhere. Applications initialized by an older plugin version may still
+contain a `testing-task-ar.md` from when this content was saved — it is a
+legacy file, untouched by the plugin and no longer used, not even by
+`reset`.
+
 ## Files Created in Your Application
 
 ```text
@@ -89,7 +114,6 @@ current task — later phases become their own tasks.
 │   ├── TASK_PLAN.md                  the one active task
 │   ├── task-workflow.json            logical workflow state
 │   ├── implementation-summary.md     what was actually built
-│   ├── testing-task-ar.md            the Arabic testing task
 │   └── reviews/                      round-NNN-prompt.md / round-NNN-result.md
 └── .claude/                          local, ignored
     ├── deployment.local.json         your deployment config (you create it)

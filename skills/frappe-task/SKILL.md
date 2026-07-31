@@ -71,7 +71,7 @@ description here becomes a wrong answer to the user.
 | `apply-review` | Process an `APPROVED` or `CHANGES_REQUIRED` result, record the review round, route to `review_fixes` or `ready_for_commit` | codex-review skill |
 | `commit` | Prepare the Conventional Commit message and exact staging commands; execute only on explicit request | git-finalization skill |
 | `deploy` | Ask deploy-or-skip, then run the safe deployment procedure | deployment skill |
-| `testing` | Generate a concise Arabic testing-team title and description from the approved behavior | testing-task skill |
+| `testing` | Generate a concise Arabic testing-team title and description from the approved behavior and print them in the terminal for copying — no file is created | testing-task skill |
 | `reset` | Reset active task workflow state after explicit confirmation | — (see command-routing.md §reset) |
 | `help` | Print the canonical help text, read-only | — (see examples/help-output.md) |
 

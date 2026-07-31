@@ -47,6 +47,16 @@ an error, not a new key) and refuses `current_stage`, `blockers`,
 operation that enforces a rule a raw write would bypass. Use `--json-value`
 when the field is a number, boolean, or null.
 
+## Terminal-Only Output
+
+Not every result is a file. The Arabic testing task produced by the
+`testing` action is printed in the terminal for the user to copy into their
+task-management system: no `testing-task-ar.md` is written anywhere, the
+generated text is not stored in the workflow state, and only
+`testing_task.status` and `testing_task.generated_at` are recorded. A
+`testing-task-ar.md` left behind by an older plugin version is a legacy
+artifact — never read, updated, staged, migrated, or deleted.
+
 ## Repository Verification Requirements
 
 - Never assert a path, DocType, hook, or Site exists without checking.

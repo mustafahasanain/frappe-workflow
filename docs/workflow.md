@@ -23,8 +23,8 @@ whether deployment was deliberately skipped.
 6. **committed** — the task commit exists and was verified.
 7. **deployed** / **deployment_skipped** — the deploy question was answered
    and acted on.
-8. **completed** — the Arabic testing task was generated and the task is
-   closed.
+8. **completed** — the Arabic testing task was generated (printed in the
+   terminal, not saved) and the task is closed.
 
 ## Allowed Transitions
 
@@ -125,7 +125,7 @@ same value and any content change produces a different one.
 
 Two directories are excluded by construction: `docs/ai-context/` (so the
 plan, the workflow state, the implementation summary, the review history,
-the testing note, and the AI documentation never invalidate an approval)
+and the AI documentation never invalidate an approval)
 and `.claude/` (machine-local state). Excluding them from the fingerprint
 does not exclude them from secret scanning: the shared files are still
 scanned before staging and completion.
@@ -175,7 +175,31 @@ recovery to a human.
 ## Closing the Task
 
 The testing action generates a short Arabic title and description from the
-approved behavior, saves a copy to `docs/ai-context/testing-task-ar.md`, and moves
-the workflow to `completed`. When deployment was skipped, a separate
-English warning is shown — outside the Arabic text — telling you to publish
-the testing task only once the changes reach the testing environment.
+approved behavior, prints them in the terminal, and moves the workflow to
+`completed`:
+
+```text
+العنوان:
+<Arabic title>
+
+الوصف:
+<Arabic description>
+```
+
+Copy them into your task-management system — that is the whole purpose of
+the output. **No file is written**: there is no `testing-task-ar.md` and no
+replacement for it, and the generated text is not stored in the workflow
+state either. What the state records is that the task was generated and
+when (`testing_task.status`, `testing_task.generated_at`), which `status`
+reports as `Testing task: generated (2026-07-31T13:09:37Z)`.
+
+When deployment was skipped, a separate English warning is shown — after
+the Arabic text, never inside it — telling you to publish the testing task
+only once the changes reach the testing environment.
+
+Older plugin versions saved this content to `.claude/testing-task-ar.md`
+and later to `docs/ai-context/testing-task-ar.md`. Such a file is now a
+legacy artifact: the plugin never reads, updates, stages, migrates, or
+deletes it, and a confirmed `reset` leaves it in place. Likewise, a
+`testing_task.path` in an existing workflow state still loads and is simply
+ignored.

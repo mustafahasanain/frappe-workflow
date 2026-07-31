@@ -483,12 +483,34 @@ class FullWorkflowWalkthroughTests(unittest.TestCase):
         self.assert_ok(
             self.cli("state", "set", "testing_task.status", "generated"), "testing status"
         )
+        self.assert_ok(
+            self.cli("state", "set", "testing_task.generated_at", "2026-07-31T13:09:37Z"),
+            "testing generated_at",
+        )
+        # The Arabic testing task is terminal output: there is no path field
+        # to record, so setting one is an unknown-path error.
+        no_path = self.cli(
+            "state", "set", "testing_task.path", "docs/ai-context/testing-task-ar.md"
+        )
+        self.assertEqual(no_path.returncode, 1, no_path.stdout)
+        self.assertIn("STATE_UNKNOWN_PATH", no_path.stderr)
         self.assert_ok(self.cli("state", "transition", "completed"), "-> completed")
 
         final = json.loads(self.cli("state", "show").stdout)
         self.assertEqual(final["current_stage"], "completed")
         self.assertEqual(final["commit"]["hash"], commit_hash)
         self.assertEqual(final["deployment"]["status"], "skipped")
+        self.assertEqual(
+            final["testing_task"],
+            {"status": "generated", "generated_at": "2026-07-31T13:09:37Z"},
+        )
+        # Closing the workflow creates no testing-task file anywhere.
+        for stale in (
+            "docs/ai-context/testing-task-ar.md",
+            ".claude/testing-task-ar.md",
+        ):
+            with self.subTest(stale=stale):
+                self.assertFalse((self.app / stale).exists())
         stages = [record["to"] for record in final["transition_history"]]
         self.assertEqual(
             stages,
@@ -537,6 +559,17 @@ class ProjectCommandTests(unittest.TestCase):
             data["tracked_shared_files"], list(project_files.TRACKED_SHARED_FILES)
         )
 
+    def test_paths_reports_no_testing_task_file(self):
+        """`testing` prints its result, so no path may be advertised."""
+        result = run_cli("project", "paths", cwd=self.repo)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("testing", result.stdout)
+        data = json.loads(result.stdout)
+        self.assertNotIn("testing_task_ar", data)
+        for key in ("tracked_shared_files", "reset_paths"):
+            with self.subTest(key=key):
+                self.assertFalse([p for p in data[key] if "testing-task" in p])
+
     def test_ensure_gitignore_is_idempotent(self):
         first = run_cli("--json", "project", "ensure-gitignore", cwd=self.repo)
         self.assertEqual(first.returncode, 0, first.stderr)
@@ -569,7 +602,6 @@ class ProjectCommandTests(unittest.TestCase):
             project_files.WORKFLOW_STATE,
             project_files.TASK_PLAN,
             project_files.IMPLEMENTATION_SUMMARY,
-            project_files.TESTING_TASK_AR,
         ):
             with self.subTest(name=name):
                 self.assertFalse(

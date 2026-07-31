@@ -150,7 +150,7 @@ FINALIZATION_FILES = (
 # Workflow and machine-local files must never affect the implementation
 # fingerprint. The shared workflow data is tracked by Git for cross-device
 # continuation, but it is not application behavior, so a plan edit, a state
-# write, a new review round, or a testing note cannot invalidate an approval.
+# write, or a new review round cannot invalidate an approval.
 FINGERPRINT_EXCLUDED_DIRS = (
     project_files.AI_CONTEXT_DIR,
     project_files.CLAUDE_DIR,

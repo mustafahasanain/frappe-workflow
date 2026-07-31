@@ -365,7 +365,6 @@ def cmd_project(args) -> int:
                 "task_plan": project_files.TASK_PLAN,
                 "workflow_state": project_files.WORKFLOW_STATE,
                 "implementation_summary": project_files.IMPLEMENTATION_SUMMARY,
-                "testing_task_ar": project_files.TESTING_TASK_AR,
                 "reviews_dir": project_files.REVIEWS_DIR,
                 "claude_dir": project_files.CLAUDE_DIR,
                 "deployment_config": project_files.DEPLOYMENT_CONFIG,

@@ -9,9 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Arabic testing task is terminal output, not a file** — `testing` now
+  prints the Arabic title and description directly in the Claude Code
+  terminal, ready to copy into a task-management system, and creates
+  nothing: `docs/ai-context/testing-task-ar.md` is no longer generated and
+  has no replacement anywhere. The workflow state records only
+  `testing_task.status` and `testing_task.generated_at` (the generated text
+  is never stored), `status` reports
+  `Testing task: generated (<timestamp>)` without a path, and the deploy
+  skip warning is still shown separately in English. Existing state files
+  containing `testing_task.path` keep loading — the key is ignored, never
+  regenerated — and a `testing-task-ar.md` left by an older version is a
+  legacy artifact the plugin no longer creates, reads, stages, or migrates
+  and that `reset` no longer deletes.
 - **Shared AI context moved to `docs/ai-context/`** — `PROJECT_CONTEXT.md`,
   `FEATURE_CHANGELOG.md`, `TASK_PLAN.md`, `task-workflow.json`,
-  `implementation-summary.md`, `testing-task-ar.md`, and `reviews/` now all
+  `implementation-summary.md`, and `reviews/` now all
   live under `docs/ai-context/` in the target application, keeping its root
   clean and making every one of them Git-trackable. An active task can
   continue on another computer once the working branch is committed and
@@ -24,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   entries, and nothing under `docs/ai-context/` is ever ignored.
 - **Implementation fingerprint excludes `docs/ai-context/` and `.claude/`**
   — it represents application implementation changes only, so plans,
-  workflow state, summaries, reviews, testing notes, and AI documentation
+  workflow state, summaries, reviews, and AI documentation
   cannot invalidate a valid Codex approval. Those shared files are still
   secret-scanned before staging and completion.
 - **Every managed path comes from one place** —
@@ -43,6 +56,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `.gitignore` entries, never touching `.claude/deployment.local.json`, and
   doing nothing on a repeat run. A path present in both layouts aborts the
   whole migration with `MIGRATE_CONFLICT` rather than guessing.
+
+### Removed
+
+- **`templates/output/TESTING_TASK_AR.md`** — the shape of a file the
+  plugin no longer writes. The Arabic output shape now lives with the rules
+  that produce it, in
+  `skills/testing-task/references/arabic-testing-task-rules.md`.
+- **`testing_task.path`** from new workflow states, and the testing-task
+  entry from the managed-path constants, `project paths` output, reset
+  list, and legacy-layout migration mapping.
 
 ## [0.1.0] — 2026-07-27
 

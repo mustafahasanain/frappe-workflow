@@ -321,6 +321,25 @@ From `committed`, run `deploy` first and answer the question — choosing
 adds the separate warning that the changes are not in the testing
 environment yet.
 
+## Where is the testing task file?
+
+There is none, by design. `testing` prints the Arabic title and description
+in the terminal so you can copy them into your task-management system;
+nothing is written to `docs/ai-context/`, to `.claude/`, or anywhere else,
+and the text is not kept in the workflow state.
+
+If you scrolled past the output, ask for the testing task again — it is
+regenerated from the same approved behavior and printed once more, with no
+change to the `completed` state.
+
+An application that was initialized by an older plugin version may still
+contain `.claude/testing-task-ar.md` or
+`docs/ai-context/testing-task-ar.md`, and its workflow state may still
+carry a `testing_task.path`. Both are legacy leftovers: the file is never
+read, updated, staged, migrated, or deleted (a confirmed `reset` leaves it
+alone), and the state key still loads and is ignored. Delete the old file
+yourself if you want it gone.
+
 ## The safety hook blocked something I needed
 
 The hook blocks destructive commands the workflow never issues:

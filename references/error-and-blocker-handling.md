@@ -34,6 +34,9 @@ is actually resolved and the step re-validated.
 - Review prompt exists but state lost the round number → recount from
   `docs/ai-context/reviews/` filenames (the CLI already does this).
 - `analyzed_commit` behind HEAD → incremental context update.
+- The printed Arabic testing task was lost (it exists only in the terminal;
+  no file is written) → regenerate and print it from the same approved
+  behavior, leaving the `completed` state untouched.
 
 **Non-recoverable without user judgment (stop and report):**
 

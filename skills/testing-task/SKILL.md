@@ -24,12 +24,16 @@ closes the workflow.
 
 ## Outputs
 
-- Arabic `Title` + `Description` only — content rules in
+- Arabic `Title` + `Description` **printed in the Claude Code terminal**,
+  ready to copy into the testing team's task-management system — content
+  rules in
   [references/arabic-testing-task-rules.md](references/arabic-testing-task-rules.md).
-- Copy saved to `docs/ai-context/testing-task-ar.md` (template shape:
-  `templates/output/TESTING_TASK_AR.md`).
-- State: `testing_task = {status: "generated", path, generated_at}`;
-  `state transition completed`.
+- **No file.** Never create `docs/ai-context/testing-task-ar.md`,
+  `.claude/testing-task-ar.md`, or any replacement testing-task file
+  anywhere.
+- State: `testing_task = {status: "generated", generated_at}`;
+  `state transition completed`. The generated Arabic text itself is never
+  stored in state.
 
 ## Preconditions
 
@@ -37,8 +41,16 @@ closes the workflow.
 
 ## Stopping Conditions
 
-- Task generated, saved, workflow `completed` → report the closing
-  summary (commit hash, deployment outcome, testing task location). Done.
+- Task printed, state recorded, workflow `completed` → report the closing
+  summary (commit hash, deployment outcome, and that the Arabic testing
+  task was printed above for copying). Done.
+
+## Reprinting After Completion
+
+The text lives only in the terminal, so a user who lost it may ask for it
+again while the stage is already `completed`. Regenerate and print it from
+the same approved behavior, and change nothing: no transition (there is
+none from `completed`), no state write, no file.
 
 ## Deployment-Skipped Warning
 
@@ -54,6 +66,11 @@ Never embed the warning inside the Arabic description.
 
 ## Prohibited
 
+- Writing the title or description to any file, in the application repo or
+  anywhere else. Older plugin versions saved
+  `.claude/testing-task-ar.md` / `docs/ai-context/testing-task-ar.md`; such
+  a file may still exist in an old application — leave it untouched, never
+  read it, never update it.
 - Mentioning source files, Python functions, or internal implementation
   in the Arabic text.
 - Copying the original task title as the description.

@@ -21,7 +21,6 @@ class PathConstantTests(unittest.TestCase):
             project_files.TASK_PLAN,
             project_files.WORKFLOW_STATE,
             project_files.IMPLEMENTATION_SUMMARY,
-            project_files.TESTING_TASK_AR,
             project_files.REVIEWS_DIR,
         ):
             with self.subTest(name=name):
@@ -46,10 +45,15 @@ class PathConstantTests(unittest.TestCase):
             project_files.IMPLEMENTATION_SUMMARY,
             "docs/ai-context/implementation-summary.md",
         )
-        self.assertEqual(
-            project_files.TESTING_TASK_AR, "docs/ai-context/testing-task-ar.md"
-        )
         self.assertEqual(project_files.REVIEWS_DIR, "docs/ai-context/reviews")
+
+    def test_no_testing_task_path_constant_exists(self):
+        """`testing` prints its output; there is no file to name."""
+        self.assertFalse(hasattr(project_files, "TESTING_TASK_AR"))
+        for name, value in vars(project_files).items():
+            if name.isupper() and isinstance(value, str):
+                with self.subTest(constant=name):
+                    self.assertNotIn("testing-task", value)
 
     def test_machine_local_files_stay_under_claude(self):
         self.assertEqual(project_files.CLAUDE_DIR, ".claude")
@@ -63,7 +67,6 @@ class PathConstantTests(unittest.TestCase):
             project_files.TASK_PLAN,
             project_files.WORKFLOW_STATE,
             project_files.IMPLEMENTATION_SUMMARY,
-            project_files.TESTING_TASK_AR,
         ):
             with self.subTest(name=name):
                 self.assertNotIn(name, project_files.INIT_CREATED_FILES)
@@ -85,11 +88,21 @@ class PathConstantTests(unittest.TestCase):
                     project_files.WORKFLOW_STATE,
                     project_files.TASK_PLAN,
                     project_files.IMPLEMENTATION_SUMMARY,
-                    project_files.TESTING_TASK_AR,
                     project_files.REVIEWS_DIR,
                 )
             ),
         )
+
+    def test_reset_never_lists_a_testing_task_file(self):
+        """A legacy testing-task file is not an active workflow artifact."""
+        for path in project_files.RESET_PATHS:
+            with self.subTest(path=path):
+                self.assertNotIn("testing-task", path)
+
+    def test_tracked_shared_files_hold_no_testing_task_file(self):
+        for path in project_files.TRACKED_SHARED_FILES:
+            with self.subTest(path=path):
+                self.assertNotIn("testing-task", path)
 
 
 class GitignoreBlockTests(unittest.TestCase):
@@ -141,7 +154,6 @@ class GitignoreBlockTests(unittest.TestCase):
             project_files.TASK_PLAN,
             project_files.WORKFLOW_STATE,
             project_files.IMPLEMENTATION_SUMMARY,
-            project_files.TESTING_TASK_AR,
             project_files.REVIEWS_DIR,
         ):
             with self.subTest(name=name):
@@ -248,7 +260,6 @@ class LegacyMigrationTests(unittest.TestCase):
                     project_files.TASK_PLAN,
                     project_files.WORKFLOW_STATE,
                     project_files.IMPLEMENTATION_SUMMARY,
-                    project_files.TESTING_TASK_AR,
                     project_files.REVIEWS_DIR,
                 )
             ),
@@ -283,6 +294,42 @@ class LegacyMigrationTests(unittest.TestCase):
         self.assertTrue((self.repo / project_files.DEPLOYMENT_CONFIG).is_file())
         self.assertFalse(
             (self.repo / project_files.AI_CONTEXT_DIR / "deployment.local.json").exists()
+        )
+
+    def test_never_moves_a_legacy_testing_task_file(self):
+        """The testing task is terminal output; its old file is not managed."""
+        self.build_legacy_layout()
+        result = project_files.migrate_legacy_layout(self.repo)
+
+        self.assertNotIn(
+            ".claude/testing-task-ar.md",
+            [item["from"] for item in result["moved"]],
+        )
+        legacy = self.repo / ".claude/testing-task-ar.md"
+        self.assertTrue(legacy.is_file(), "a legacy testing task must be left alone")
+        self.assertEqual(legacy.read_text(encoding="utf-8"), "# Testing\n")
+        self.assertFalse(
+            (self.repo / "docs/ai-context/testing-task-ar.md").exists(),
+            "migration must not create a testing-task file at the new location",
+        )
+
+    def test_leaves_an_already_migrated_testing_task_file_untouched(self):
+        """An app migrated by an older version keeps its docs/ copy as-is."""
+        self.build_legacy_layout()
+        support.write_repo_file(
+            self.repo, "docs/ai-context/testing-task-ar.md", "# Old Arabic task\n"
+        )
+
+        result = project_files.migrate_legacy_layout(self.repo)
+
+        # It is not a managed path, so it cannot cause a migration conflict.
+        self.assertEqual(result["conflicts"], [])
+        self.assertTrue(result["changed"])
+        self.assertEqual(
+            (self.repo / "docs/ai-context/testing-task-ar.md").read_text(
+                encoding="utf-8"
+            ),
+            "# Old Arabic task\n",
         )
 
     def test_updates_the_managed_gitignore_block(self):

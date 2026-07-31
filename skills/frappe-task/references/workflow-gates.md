@@ -85,7 +85,7 @@ and `.claude/` entirely, by construction (see
 `skills/codex-review/references/approval-invalidation.md`). Documentation
 and workflow updates that cannot affect runtime behavior — the feature
 changelog, the project context, the plan, the workflow state, the
-implementation summary, the review history, the testing note — are part of
+implementation summary, the review history — are part of
 finalization or bookkeeping, so editing them after approval keeps the
 comparison stable while any application edit fails it. The git-finalization
 skill additionally checks `git diff --name-only` so a surprising
